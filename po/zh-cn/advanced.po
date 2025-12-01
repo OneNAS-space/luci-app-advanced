@@ -39,3 +39,21 @@ msgstr "网络"
 
 msgid "Wireless"
 msgstr "无线"
+
+msgid "ARP binding"
+msgstr "ARP绑定"
+
+msgid "Firewall"
+msgstr "防火墙"
+
+msgid "Load balancing"
+msgstr "负载均衡"
+
+msgid "Parental control"
+msgstr "家长控制"
+
+msgid "Timed setting"
+msgstr "定时设置"
+
+msgid "Network wake-up"
+msgstr "网络唤醒"
