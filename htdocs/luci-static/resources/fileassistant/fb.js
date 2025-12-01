@@ -17,7 +17,7 @@ String.prototype.replaceAll = function(search, replacement) {
     }
   };
   function removePath(filename, isdir) {
-    var c = confirm('你确定要删除 ' + filename + ' 吗？');
+    var c = confirm('Do u want to delete ' + filename + ' ?');
     if (c) {
       iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/delete',
         {
@@ -34,15 +34,15 @@ String.prototype.replaceAll = function(search, replacement) {
 
   function installPath(filename, isdir) {
     if (isdir === "1") {
-      alert('这是一个目录，请选择 ipk 文件进行安装！');
+      alert('This is a directory. Please select the ipk file to install it!');
       return;
     }
     var isipk = isIPK(filename);
     if (isipk === 0) {
-      alert('只允许安装 ipk 格式的文件！');
+      alert('Only files in ipk format are allowed to be installed!');
       return;
     }
-    var c = confirm('你确定要安装 ' + filename + ' 吗？');
+    var c = confirm('Do u want to install ' + filename + ' ?');
     if (c) {
       iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/install',
         {
@@ -52,9 +52,9 @@ String.prototype.replaceAll = function(search, replacement) {
         function (x, res) {
           if (res.ec === 0) {
             location.reload();
-            alert('安装成功!');
+            alert('Successful installation.');
           } else {
-            alert('安装失败，请检查文件格式!');
+            alert('Installation failed. Please check the file format.');
           }
       });
     }
@@ -71,7 +71,7 @@ String.prototype.replaceAll = function(search, replacement) {
   }
 
   function renamePath(filename) {
-    var newname = prompt('请输入新的文件名：', filename);
+    var newname = prompt('Please enter the new file name: ', filename);
     if (newname) {
       newname = newname.trim();
       if (newname != filename) {
@@ -158,7 +158,7 @@ String.prototype.replaceAll = function(search, replacement) {
   function refresh_list(filenames, path) {
     var listHtml = '<table class="cbi-section-table"><tbody>';
     if (path !== '/') {
-      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>..返回上级目录</strong></td></tr>';
+      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>..Return to the superior directory</strong></td></tr>';
     }
     if (filenames) {
       for (var i = 0; i < filenames.length; i++) {
@@ -176,11 +176,11 @@ String.prototype.replaceAll = function(search, replacement) {
             icon: (f[1][0] === 'd') ? "folder-icon" : (isLink ? "link-icon" : "file-icon")
           };
 		  
-		  var install_btn = ' <button class="cbi-button cbi-button-install" style="visibility: hidden;">安装</button>';
+		  var install_btn = ' <button class="cbi-button cbi-button-install" style="visibility: hidden;">Install</button>';
           var index= o.filename.lastIndexOf(".");
 		  var ext = o.filename.substr(index+1);
           if (ext === 'ipk') {
-            install_btn = ' <button class="cbi-button cbi-button-install">安装</button>';
+            install_btn = ' <button class="cbi-button cbi-button-install">Install</button>';
           }
 		  
           listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-' + (1 + i%2)
@@ -195,8 +195,8 @@ String.prototype.replaceAll = function(search, replacement) {
             + '<td class="cbi-value-field cbi-value-size">'+o.size+'</td>'
             + '<td class="cbi-value-field cbi-value-perm">'+o.perms+'</td>'
             + '<td class="cbi-section-table-cell">\
-				<button class="cbi-button cbi-button-edit">重命名</button>\
-                <button class="cbi-button cbi-button-remove">删除</button>'
+				<button class="cbi-button cbi-button-edit">Rename</button>\
+                <button class="cbi-button cbi-button-remove">Delete</button>'
 			+ install_btn
 			+ '</td>'
             + '</tr>';
@@ -263,7 +263,7 @@ String.prototype.replaceAll = function(search, replacement) {
           uploadinput.value = '';
         }
         else {
-          alert('上传失败，请稍后再试...');
+          alert('The upload failed. Please try again later....');
         }
       };
       xhr.send(formData);
