@@ -6,10 +6,11 @@ m.apply_on_parse=true
 s=m:section(TypedSection,"advanced")
 s.anonymous=true
 
-if nixio.fs.access("/etc/dnsmasq.conf")then
+local description_template = translate("This page is the document content of configuring %s. It will take effect after Save & Apply")
 
-s:tab("dnsmasqconf",translate("dnsmasq"),translate("This page is the document content of configuring /etc/dnsmasq.conf. It will take effect after Save & Apply"))
-
+local file_path_dnsmasq = "/etc/dnsmasq.conf"
+if nixio.fs.access("file_path_dnsmasq")then
+s:tab("dnsmasqconf",translate("dnsmasq"),string.format(description_template, file_path_dnsmasq))
 conf=s:taboption("dnsmasqconf",Value,"dnsmasqconf",nil,translate("Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option."))
 conf.template="cbi/tvalue"
 conf.rows=20
