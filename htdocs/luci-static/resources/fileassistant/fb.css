@@ -21,7 +21,7 @@
     border-bottom: 1px solid #aaa;
 }
 .fb-container .upload-container {
-    display: none;
+    display: flex;
     margin: 1rem 0;
 }
 .fb-container .upload-file {
