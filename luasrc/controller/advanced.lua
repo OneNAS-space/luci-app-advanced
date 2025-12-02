@@ -59,7 +59,10 @@ end
 function fileassistant_rename()
     local filepath = luci.http.formvalue("filepath")
     local newpath = luci.http.formvalue("newpath")
-    local success = os.execute('mv "'..filepath..'" "'..newpath..'"')
+    local quoted_filepath = u.shellquote(filepath)
+    local quoted_newpath = u.shellquote(newpath)
+    local result_code = luci.sys.exec('mv ' .. quoted_filepath .. ' ' .. quoted_newpath)
+    local success = (result_code == 0)
     list_response(nixio.fs.dirname(filepath), success)
 end
 
@@ -67,15 +70,11 @@ function fileassistant_install()
     local filepath = luci.http.formvalue("filepath")
     local isdir = luci.http.formvalue("isdir")
     local ext = filepath:match(".+%.(%w+)$")
-    filepath = filepath:gsub("<>", "/")
-    filepath = filepath:gsub(" ", "\ ")
     local success
     if isdir == "1" then
         success = false  
     elseif ext == "ipk" then
         success = installIPK(filepath)
-    else
-        success = false
     end
     list_response(nixio.fs.dirname(filepath), success)
 end
