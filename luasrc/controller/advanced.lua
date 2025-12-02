@@ -131,7 +131,7 @@ function scandir(directory)
             if not full_link_path:match("/$") then
                 full_link_path = full_link_path .. "/"
             end
-            finalpath = nixio.fs.realpath(full_link_path .. linkpath)
+            finalpath = nixio.fs.realpath(full_link_path .. linkpath)
         end
         local linktype;
         if not finalpath then
