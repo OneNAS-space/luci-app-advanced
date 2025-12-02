@@ -1,7 +1,11 @@
 #!/bin/sh
 
-ver=$(date +%s)
-sed -i "s/@ver/$ver/g" /usr/lib/lua/luci/view/filebrowser.htm
+FILE_PATH="/usr/lib/lua/luci/view/fileassistant.htm"
+
+if [ -f "$FILE_PATH" ]; then
+    ver=$(date +%s)
+    sed -i "s/@ver/$ver/g" "$FILE_PATH"
+fi
 
 rm -f /tmp/luci-indexcache
 exit 0
