@@ -23,7 +23,7 @@ function list_response(path, success)
 end
 
 function fileassistant_list()
-    local path = luci.http.formvalue("path")
+    local path = luci.http.formvalue("path") or "/"
     list_response(path, true)
 end
 
@@ -112,13 +112,14 @@ end
 function scandir(directory)
     local i, t, popen = 0, {}, io.popen
 
-    local pfile = popen("ls -lh \""..directory.."\" | egrep '^d' ; ls -lh \""..directory.."\" | egrep -v '^d|^l'")
+    local quoted_dir = u.shellquote(directory)
+    local pfile = popen("ls -lh " .. quoted_dir .. " | egrep '^d' ; ls -lh " .. quoted_dir .. " | egrep -v '^d|^l'")
     for fileinfo in pfile:lines() do
         i = i + 1
         t[i] = fileinfo
     end
     pfile:close()
-    pfile = popen("ls -lh \""..directory.."\" | egrep '^l' ;")
+    pfile = popen("ls -lh " .. quoted_dir .. " | egrep '^l' ;")
     for fileinfo in pfile:lines() do
         i = i + 1
         linkindex, _, linkpath = string.find(fileinfo, "->%s+(.+)$")
