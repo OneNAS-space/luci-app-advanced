@@ -1,6 +1,9 @@
 module("luci.controller.advanced",package.seeall)
 local io = require "io"
 local ltn12 = require "luci.ltn12"
+require "nixio.fs"
+local nixio = require "nixio"
+local u = require "luci.util"
 
 function list_response(path, success)
     luci.http.prepare_content("application/json")
@@ -40,11 +43,13 @@ end
 function fileassistant_delete()
     local path = luci.http.formvalue("path")
     local isdir = luci.http.formvalue("isdir")
-    path = path:gsub("<>", "/")
-    path = path:gsub(" ", "\ ")
-    local success
-    if isdir then
-        success = os.execute('rm -r "'..path..'"')
+    local quoted_path = luci.util.shellquote(path)
+    local success = false
+    local result_code
+
+    if isdir == "1" then
+        result_code = luci.sys.exec('rm -r ' .. quoted_path)
+        success = (result_code == 0)
     else
         success = os.remove(path)
     end
