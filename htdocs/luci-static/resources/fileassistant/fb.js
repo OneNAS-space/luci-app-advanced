@@ -120,14 +120,17 @@ String.prototype.replaceAll = function(search, replacement) {
     var targetElem = evt.target;
     var infoElem;
     if (targetElem.className.indexOf('cbi-button-remove') > -1) {
+	  evt.preventDefault(); 
       infoElem = targetElem.parentNode.parentNode;
       removePath(infoElem.dataset['filename'] , infoElem.dataset['isdir'])
     }
     else if (targetElem.className.indexOf('cbi-button-install') > -1) {
+	  evt.preventDefault(); 
       infoElem = targetElem.parentNode.parentNode;
       installPath(infoElem.dataset['filename'] , infoElem.dataset['isdir'])
     }
     else if (targetElem.className.indexOf('cbi-button-edit') > -1) {
+	  evt.preventDefault(); 
       renamePath(targetElem.parentNode.parentNode.dataset['filename']);
     }
     else if (targetElem = getFileElem(targetElem)) {
