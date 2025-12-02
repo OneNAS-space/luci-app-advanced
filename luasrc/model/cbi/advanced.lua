@@ -337,4 +337,8 @@ end
 end
 end
 
+s:tab("filemanager", translate("File assistant"))
+local fm_view = s:taboption("filemanager", Value, "_file_manager_view")
+fm_view.template = "fileassistant"
+
 return m
