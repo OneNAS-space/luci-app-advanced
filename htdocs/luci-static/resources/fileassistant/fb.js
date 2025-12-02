@@ -17,9 +17,9 @@ String.prototype.replaceAll = function(search, replacement) {
     }
   };
   function removePath(filename, isdir) {
-    var c = confirm('Do u want to delete ' + filename + ' ?');
+    var c = confirm(_('Do u want to delete %s ?').format(filename));
     if (c) {
-      iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/delete',
+      iwxhr.get('/cgi-bin/luci/admin/system/advanced/fileassistant/delete',
         {
           path: concatPath(currentPath, filename),
           isdir: isdir
@@ -34,17 +34,17 @@ String.prototype.replaceAll = function(search, replacement) {
 
   function installPath(filename, isdir) {
     if (isdir === "1") {
-      alert('This is a directory. Please select the ipk file to install it!');
+      alert(_('This is a directory. Please select the ipk file to install it!'));
       return;
     }
     var isipk = isIPK(filename);
     if (isipk === 0) {
-      alert('Only files in ipk format are allowed to be installed!');
+      alert(_('Only files in ipk format are allowed to be installed!'));
       return;
     }
-    var c = confirm('Do u want to install ' + filename + ' ?');
+    var c = confirm(_('Do u want to install %s ?').format(filename));
     if (c) {
-      iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/install',
+      iwxhr.get('/cgi-bin/luci/admin/system/advanced/fileassistant/install',
         {
           filepath: concatPath(currentPath, filename),
           isdir: isdir
@@ -52,9 +52,9 @@ String.prototype.replaceAll = function(search, replacement) {
         function (x, res) {
           if (res.ec === 0) {
             location.reload();
-            alert('Successful installation.');
+            alert(_('Successful installation.'));
           } else {
-            alert('Installation failed. Please check the file format.');
+            alert(_('Installation failed. Please check the file format.'));
           }
       });
     }
@@ -71,12 +71,12 @@ String.prototype.replaceAll = function(search, replacement) {
   }
 
   function renamePath(filename) {
-    var newname = prompt('Please enter the new file name: ', filename);
+    var newname = prompt(_('Please enter the new file name: '), filename);
     if (newname) {
       newname = newname.trim();
       if (newname != filename) {
         var newpath = concatPath(currentPath, newname);
-        iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/rename',
+        iwxhr.get('/cgi-bin/luci/admin/system/advanced/fileassistant/rename',
           {
             filepath: concatPath(currentPath, filename),
             newpath: newpath
@@ -93,7 +93,7 @@ String.prototype.replaceAll = function(search, replacement) {
 
   function openpath(filename, dirname) {
     dirname = dirname || currentPath;
-    window.open('/cgi-bin/luci/admin/system/fileassistant/open?path='
+    window.open('/cgi-bin/luci/admin/system/advanced/fileassistant/open?path='
       + encodeURIComponent(dirname) + '&filename='
       + encodeURIComponent(filename));
   }
@@ -158,7 +158,7 @@ String.prototype.replaceAll = function(search, replacement) {
   function refresh_list(filenames, path) {
     var listHtml = '<table class="cbi-section-table"><tbody>';
     if (path !== '/') {
-      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>..Return to the superior directory</strong></td></tr>';
+      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>' + _('..Return to the superior directory') + '</strong></td></tr>';
     }
     if (filenames) {
       for (var i = 0; i < filenames.length; i++) {
@@ -176,11 +176,11 @@ String.prototype.replaceAll = function(search, replacement) {
             icon: (f[1][0] === 'd') ? "folder-icon" : (isLink ? "link-icon" : "file-icon")
           };
 		  
-		  var install_btn = ' <button class="cbi-button cbi-button-install" style="visibility: hidden;">Install</button>';
+		  var install_btn = ' <button class="cbi-button cbi-button-install" style="visibility: hidden;">' + _('Install') + '</button>';
           var index= o.filename.lastIndexOf(".");
 		  var ext = o.filename.substr(index+1);
           if (ext === 'ipk') {
-            install_btn = ' <button class="cbi-button cbi-button-install">Install</button>';
+            install_btn = ' <button class="cbi-button cbi-button-install">' + _('Install') + '</button>';
           }
 		  
           listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-' + (1 + i%2)
@@ -195,8 +195,8 @@ String.prototype.replaceAll = function(search, replacement) {
             + '<td class="cbi-value-field cbi-value-size">'+o.size+'</td>'
             + '<td class="cbi-value-field cbi-value-perm">'+o.perms+'</td>'
             + '<td class="cbi-section-table-cell">\
-				<button class="cbi-button cbi-button-edit">Rename</button>\
-                <button class="cbi-button cbi-button-remove">Delete</button>'
+				<button class="cbi-button cbi-button-edit">' + _('Rename') + '</button>\
+                <button class="cbi-button cbi-button-remove">' + _('Delete') + '</button>'
 			+ install_btn
 			+ '</td>'
             + '</tr>';
@@ -210,7 +210,7 @@ String.prototype.replaceAll = function(search, replacement) {
     opt = opt || {};
     path = concatPath(path, '');
     if (currentPath != path) {
-      iwxhr.get('/cgi-bin/luci/admin/system/fileassistant/list',
+      iwxhr.get('/cgi-bin/luci/admin/system/advanced/fileassistant/list',
         {path: path},
         function (x, res) {
           if (res.ec === 0) {
@@ -255,7 +255,7 @@ String.prototype.replaceAll = function(search, replacement) {
       formData.append('upload-dir', concatPath(currentPath, ''));
       formData.append('upload-file', uploadinput.files[0]);
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "/cgi-bin/luci/admin/system/fileassistant/upload", true);
+      xhr.open("POST", "/cgi-bin/luci/admin/system/advanced/fileassistant/upload", true);
       xhr.onload = function() {
         if (xhr.status == 200) {
           var res = JSON.parse(xhr.responseText);
@@ -263,7 +263,7 @@ String.prototype.replaceAll = function(search, replacement) {
           uploadinput.value = '';
         }
         else {
-          alert('The upload failed. Please try again later....');
+          alert(_('The upload failed. Please try again later....'));
         }
       };
       xhr.send(formData);
