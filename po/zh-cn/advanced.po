@@ -57,3 +57,39 @@ msgstr "定时设置"
 
 msgid "Network wake-up"
 msgstr "网络唤醒"
+
+msgid "Do u want to delete %s ?"
+msgstr "您确定要删除 %s 吗？"
+
+msgid "This is a directory. Please select the ipk file to install it!"
+msgstr "这是一个目录，请选择 ipk 文件进行安装！"
+
+msgid "Only files in ipk format are allowed to be installed!"
+msgstr "只允许安装 ipk 格式的文件！"
+
+msgid "Do u want to install %s ?"
+msgstr "您确定要安装 %s 吗？"
+
+msgid "Successful installation."
+msgstr "安装成功!"
+
+msgid "Installation failed. Please check the file format."
+msgstr "安装失败，请检查文件格式!"
+
+msgid "Please enter the new file name:"
+msgstr "请输入新的文件名："
+
+msgid "..Return to the superior directory"
+msgstr "..返回上级目录"
+
+msgid "Install"
+msgstr "安装"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "The upload failed. Please try again later...."
+msgstr "上传失败，请稍后再试..."
