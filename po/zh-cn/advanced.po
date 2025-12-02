@@ -55,7 +55,7 @@ msgstr "家长控制"
 msgid "Timed setting"
 msgstr "定时设置"
 
-msgid "Network wake-up"
+msgid "Wake-on-LAN"
 msgstr "网络唤醒"
 
 msgid "Do u want to delete %s ?"
