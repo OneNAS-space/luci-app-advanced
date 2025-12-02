@@ -82,7 +82,7 @@ end
 function installIPK(filepath)
     luci.sys.exec('opkg --force-depends install "'..filepath..'"')
     luci.sys.exec('rm -rf /tmp/luci-*')
-    return true;
+    return (result_code == 0)
 end
 
 function fileassistant_upload()
@@ -127,7 +127,11 @@ function scandir(directory)
         if string.sub(linkpath, 1, 1) == "/" then
             finalpath = linkpath
         else
-            finalpath = nixio.fs.realpath(directory..linkpath)
+            local full_link_path = directory
+            if not full_link_path:match("/$") then
+                full_link_path = full_link_path .. "/"
+            end
+            finalpath = nixio.fs.realpath(full_link_path .. linkpath)
         end
         local linktype;
         if not finalpath then
