@@ -112,8 +112,9 @@ end
 function scandir(directory)
     local i, t, popen = 0, {}, io.popen
 
-    local quoted_dir = u.shellquote(directory)
-    local pfile = popen("ls -lh " .. quoted_dir .. " | egrep '^d' ; ls -lh " .. quoted_dir .. " | egrep -v '^d|^l'")
+    local clean_dir = directory:gsub("/+$", "")
+    local quoted_dir = u.shellquote(clean_dir)
+    local pfile = popen("ls -lh " .. quoted_dir .. " | grep -E '^d' ; ls -lh " .. quoted_dir .. " | grep -E -v '^d|^l'")
     for fileinfo in pfile:lines() do
         i = i + 1
         t[i] = fileinfo
@@ -122,28 +123,31 @@ function scandir(directory)
     pfile = popen("ls -lh " .. quoted_dir .. " | egrep '^l' ;")
     for fileinfo in pfile:lines() do
         i = i + 1
-        linkindex, _, linkpath = string.find(fileinfo, "->%s+(.+)$")
-        local finalpath;
-        if string.sub(linkpath, 1, 1) == "/" then
-            finalpath = linkpath
-        else
-            local full_link_path = directory
-            if not full_link_path:match("/$") then
-                full_link_path = full_link_path .. "/"
+        local linkindex, linkpath
+        if fileinfo then
+            _, _, linkpath = string.find(fileinfo, "->%s+(.+)$")
+        end
+        local finalpath = nil
+        local linktype = 'x'
+        if linkpath then
+            if string.sub(linkpath, 1, 1) == "/" then
+                finalpath = linkpath
+            else
+                finalpath = nixio.fs.realpath(clean_dir .. "/" .. linkpath)
             end
-            finalpath = nixio.fs.realpath(full_link_path .. linkpath)
         end
-        local linktype;
         if not finalpath then
-            finalpath = linkpath;
-            linktype = 'x'
+             linktype = 'x'
         elseif nixio.fs.stat(finalpath, "type") == "dir" then
-            linktype = 'z'
+             linktype = 'z'
         else
-            linktype = 'l'
+             linktype = 'l'
         end
-        fileinfo = string.sub(fileinfo, 2, linkindex - 1)
-        fileinfo = linktype..fileinfo.."-> "..finalpath
+        if linkindex then
+             local pre_info = string.sub(fileinfo, 2, linkindex - 1)
+             local display_target = finalpath or linkpath
+             fileinfo = linktype .. pre_info .. "-> " .. display_target
+        end
         t[i] = fileinfo
     end
     pfile:close()
