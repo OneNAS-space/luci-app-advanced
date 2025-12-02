@@ -35,8 +35,8 @@ end
 
 local file_path_network = "/etc/config/network"
 if nixio.fs.access(file_path_network)then
-s:tab("dnsmasqconf",translate("Network"),string.format(description_template, file_path_network))
-conf=s:taboption("netwrokconf",Value,"netwrokconf",nil,option_description)
+s:tab("networkconf",translate("Network"),string.format(description_template, file_path_network))
+conf=s:taboption("networkconf",Value,"networkconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
@@ -275,7 +275,7 @@ end
 
 local file_path_wolplus = "/etc/config/wolplus"
 if nixio.fs.access(file_path_wolplus)then
-s:tab("wolplusconf",translate("Network wake-up"),string.format(description_template, file_path_wolplus))
+s:tab("wolplusconf",translate("Wake-on-LAN"),string.format(description_template, file_path_wolplus))
 conf=s:taboption("wolplusconf",Value,"wolplusconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
