@@ -1,0 +1,89 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Advanced Function"
+msgstr "高级设置"
+
+msgid "File Assistant"
+msgstr "文件助手"
+
+msgid "Integrated upload, deletion and installation, non-professionals, please operate carefully."
+msgstr "集成上传、删除及安装功能，非专业人员请谨慎操作。"
+
+msgid "File List"
+msgstr "文件列表"
+
+msgid "Open Upload"
+msgstr "开启上传"
+
+msgid "Collapse Upload"
+msgstr "收起上传"
+
+msgid "Execute the upload"
+msgstr "执行上传"
+
+msgid "This page is the document content of configuring %s. It will take effect after Save & Apply"msgstr "本页直接编辑配置文档。除非您知道自己在做什么，否则请勿随意修改这些文档。配置不正确可能会导致无法启动等严重错误。"
+msgstr "本页是配置 %s 的文档内容。应用保存后自动重启生效。"
+
+msgid "Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option."
+msgstr "以数字符号 (#) 或分号 (;) 开头的行被视为注释；删除 (#) 或分号 (;) 可启用指定选项。"
+
+msgid "Network"
+msgstr "网络"
+
+msgid "Wireless"
+msgstr "无线"
+
+msgid "ARP binding"
+msgstr "ARP绑定"
+
+msgid "Firewall"
+msgstr "防火墙"
+
+msgid "Load balancing"
+msgstr "负载均衡"
+
+msgid "Parental control"
+msgstr "家长控制"
+
+msgid "Timed setting"
+msgstr "定时设置"
+
+msgid "Wake-on-LAN"
+msgstr "网络唤醒"
+
+msgid "Do u want to delete %s ?"
+msgstr "您确定要删除 %s 吗？"
+
+msgid "This is a directory. Please select the ipk file to install it!"
+msgstr "这是一个目录，请选择 ipk 文件进行安装！"
+
+msgid "Only files in ipk format are allowed to be installed!"
+msgstr "只允许安装 ipk 格式的文件！"
+
+msgid "Do u want to install %s ?"
+msgstr "您确定要安装 %s 吗？"
+
+msgid "Successful installation."
+msgstr "安装成功!"
+
+msgid "Installation failed. Please check the file format."
+msgstr "安装失败，请检查文件格式!"
+
+msgid "Please enter the new file name."
+msgstr "请输入新的文件名"
+
+msgid ".. Return to Parent Directory"
+msgstr ".. 返回上一级目录"
+
+msgid "Install"
+msgstr "安装"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "The upload failed. Please try again later...."
+msgstr "上传失败，请稍后再试..."

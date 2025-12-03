@@ -1,23 +1,23 @@
-# Copyright (C) 2019  sirpdboy <https://github.com/sirpdboy/luci-app-advanced/>
-# 
-#
+# Copyright (C) 2025  OneNAS-space <https://github.com/OneNAS-space/luci-app-advanced/>
 #
 # This is free software, licensed under the Apache License, Version 2.0 .
-# 
+#
 
+LUCI_PO_DOMAINS:=advanced
+LUCI_LANGUAGES:=zh_Hans
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
-PKG_VERSION:=1.20
-PKG_RELEASE:=20220218
+PKG_VERSION:=2.1.1
+PKG_RELEASE:=20251203
 define Package/$(PKG_NAME)
-  SECTION:=luci
-  CATEGORY:=LuCI
-  SUBMENU:=3. Applications
-  DEPENDS:=
-   TITLE:=LuCI Support for advanced and filebrowser
-   PKGARCH:=all
+	SECTION:=luci
+	CATEGORY:=LuCI
+	SUBMENU:=3. Applications
+	DEPENDS:=
+	TITLE:=LuCI Support for advanced with fileassistant
+	PKGARCH:=all
 endef
 
 define Build/Compile
@@ -35,9 +35,6 @@ define Package/$(PKG_NAME)/install
 	
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./root/etc/uci-defaults/* $(1)/etc/uci-defaults/
-	
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) ./root/bin/* $(1)/bin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
