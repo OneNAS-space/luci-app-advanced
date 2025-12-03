@@ -237,15 +237,18 @@ String.prototype.replaceAll = function(search, replacement) {
   var uploadToggle = document.getElementById('upload-toggle');
   var uploadContainer = document.getElementById('upload-container');
   var isUploadHide = true;
+  uploadToggle.textContent = _('Open Upload');
   uploadToggle.onclick = function(evt) {
 	if (evt && evt.preventDefault) {
         evt.preventDefault();
     }
     if (isUploadHide) {
       uploadContainer.style.display = 'inline-flex';
+	  uploadToggle.textContent = _('Collapse Upload');
     }
     else {
       uploadContainer.style.display = 'none';
+	  uploadToggle.textContent = _('Open Upload');
     }
     isUploadHide = !isUploadHide;
   };
