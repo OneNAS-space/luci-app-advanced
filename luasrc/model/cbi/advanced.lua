@@ -393,7 +393,7 @@ end
 end
 end
 
-s:tab("filemanager", translate("File assistant"))
+s:tab("filemanager", translate("File Assistant"),translate("Integrated upload, deletion and installation, non-professionals, please operate carefully."))
 local fm_view = s:taboption("filemanager", Value, "_file_manager_view")
 fm_view.template = "fileassistant"
 
