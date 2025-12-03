@@ -8,6 +8,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents. Incorrect configuration may cause errors such as unable to turn on."
+msgstr "配置文档是直接编辑的除非你知道自己在干什么，否则请不要轻易修改这些配置文档。配置不正确可能会导致不能开机等错误。"
+
 msgid "Advanced Function"
 msgstr "高级功能"
 
