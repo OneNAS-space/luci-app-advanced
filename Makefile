@@ -3,8 +3,6 @@
 # This is free software, licensed under the Apache License, Version 2.0 .
 #
 
-LUCI_PO_DOMAINS:=advanced
-LUCI_LANGUAGES:=zh_Hans
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
