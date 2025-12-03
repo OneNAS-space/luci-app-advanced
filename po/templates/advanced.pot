@@ -2,7 +2,7 @@ msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
 msgid "advanced_desc"
-msgstr "Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents."
+msgstr ""
 
 msgid "Professional Functions"
 msgstr ""
