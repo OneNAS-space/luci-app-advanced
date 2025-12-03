@@ -3,6 +3,8 @@
 # This is free software, licensed under the Apache License, Version 2.0 .
 #
 
+LUCI_PO_DOMAINS:=advanced
+LUCI_LANGUAGES:=zh_Hans
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
@@ -35,7 +37,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) ./root/etc/uci-defaults/* $(1)/etc/uci-defaults/
 
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	po2lmo ./po/zh-cn/advanced.po $(1)/usr/lib/lua/luci/i18n/advanced.zh-cn.lmo
 endef
 
+$(eval $(call LuCI::install_i18n,$(PKG_NAME),advanced))
 $(eval $(call BuildPackage,$(PKG_NAME)))
