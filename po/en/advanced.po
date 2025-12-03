@@ -1,0 +1,8 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: advanced\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+
+msgid "advanced_desc"
+msgstr "Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents."
