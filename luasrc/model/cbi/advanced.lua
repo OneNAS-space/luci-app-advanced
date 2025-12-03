@@ -11,7 +11,7 @@ local option_description = translate("Each line (;) of the numerical symbol (#) 
 
 local file_path_dnsmasq = "/etc/dnsmasq.conf"
 if nixio.fs.access(file_path_dnsmasq)then
-s:tab("dnsmasqconf",translate("dnsmasq"),string.format(description_template, file_path_dnsmasq))
+s:tab("dnsmasqconf",translate("Dnsmasq"),string.format(description_template, file_path_dnsmasq))
 conf=s:taboption("dnsmasqconf",Value,"dnsmasqconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
@@ -83,7 +83,7 @@ end
 
 local file_path_hosts = "/etc/hosts"
 if nixio.fs.access(file_path_hosts)then
-s:tab("hostsconf",translate("hosts"),string.format(description_template, file_path_hosts))
+s:tab("hostsconf",translate("Hosts"),string.format(description_template, file_path_hosts))
 conf=s:taboption("hostsconf",Value,"hostsconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
