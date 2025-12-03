@@ -1,7 +1,7 @@
 local e=require"nixio.fs"
 local t=require"luci.sys"
 local t=luci.model.uci.cursor()
-m=Map("advanced",translate("Professional Functions"),translate("<font color=\"Red\"><strong>advanced_desc</strong></font><br/>"))
+m=Map("advanced",translate("Professional Functions"),"<font color=\"Red\"><strong>" .. translate("advanced_desc") .. "</strong></font><br/>")
 m.apply_on_parse=true
 s=m:section(TypedSection,"advanced")
 s.anonymous=true
