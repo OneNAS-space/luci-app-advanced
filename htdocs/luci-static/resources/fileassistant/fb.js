@@ -73,7 +73,7 @@ String.prototype.replaceAll = function(search, replacement) {
   }
 
   function renamePath(filename) {
-    var newname = prompt(_('Please enter the new file name: '), filename);
+    var newname = prompt(_('Please enter the new file name.'), filename);
     if (newname) {
       newname = newname.trim();
       if (newname != filename) {
