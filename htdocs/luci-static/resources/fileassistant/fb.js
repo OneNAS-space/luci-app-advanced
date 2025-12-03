@@ -163,7 +163,7 @@ String.prototype.replaceAll = function(search, replacement) {
   function refresh_list(filenames, path) {
     var listHtml = '<table class="cbi-section-table"><tbody>';
     if (path !== '/') {
-      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>' + _('... Return to the superior directory') + '</strong></td></tr>';
+      listHtml += '<tr class="cbi-section-table-row cbi-rowstyle-2"><td class="parent-icon" colspan="6"><strong>' + _('.. Return to Parent Directory') + '</strong></td></tr>';
     }
     if (filenames) {
       for (var i = 0; i < filenames.length; i++) {
