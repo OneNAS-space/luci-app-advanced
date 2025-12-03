@@ -7,7 +7,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
-PKG_VERSION:=2.2.0
+PKG_VERSION:=2.2.1
 PKG_RELEASE:=20251203
 PKG_BUILD_DEPENDS:=luci-base/host
 
@@ -38,6 +38,7 @@ define Package/$(PKG_NAME)/install
 
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	po2lmo ./po/zh_Hans/advanced.po $(1)/usr/lib/lua/luci/i18n/advanced.zh-cn.lmo
+	po2lmo ./po/en/advanced.po $(1)/usr/lib/lua/luci/i18n/advanced.en.lmo
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
