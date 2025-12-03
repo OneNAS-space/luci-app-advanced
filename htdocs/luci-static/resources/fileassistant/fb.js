@@ -11,9 +11,11 @@ String.prototype.replaceAll = function(search, replacement) {
   pathElem.onblur = function () {
     update_list(this.value.trim());
   };
-  pathElem.onkeyup = function (evt) {
+  pathElem.onkeydown = function (evt) {
     if (evt.keyCode == 13) {
+	  evt.preventDefault();
       this.blur();
+	  return false;
     }
   };
   function removePath(filename, isdir) {
@@ -235,7 +237,10 @@ String.prototype.replaceAll = function(search, replacement) {
   var uploadToggle = document.getElementById('upload-toggle');
   var uploadContainer = document.getElementById('upload-container');
   var isUploadHide = true;
-  uploadToggle.onclick = function() {
+  uploadToggle.onclick = function(evt) {
+	if (evt && evt.preventDefault) {
+        evt.preventDefault();
+    }
     if (isUploadHide) {
       uploadContainer.style.display = 'inline-flex';
     }
