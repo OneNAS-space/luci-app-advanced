@@ -1,12 +1,14 @@
 .fb-container {
     margin-top: 1rem;
+    padding: 0 15px;
 }
 .fb-container .cbi-button {
     height: 2.6rem;
 }
 .fb-container .cbi-input-text {
-    margin-bottom: 1rem;
-    width: 100%;
+    margin: 0 1rem 1rem 1rem;
+    width: calc(100% - 2rem);
+    box-sizing: border-box;
 }
 .fb-container .panel-title {
     padding-bottom: 0;
@@ -22,10 +24,17 @@
 }
 .fb-container .upload-container {
     display: none;
-    margin: 1rem 0;
+    margin: 0 1rem 1rem 1rem;
+    width: calc(100% - 2rem);
 }
 .fb-container .upload-file {
-    margin-right: 2rem;
+    flex-grow: 1;
+}
+.fb-container .cbi-section-table {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    width: calc(100% - 2rem);
+    box-sizing: border-box;
 }
 .fb-container .cbi-value-field {
     text-align: left;
@@ -65,4 +74,7 @@
     .fb-container .cbi-value-perm {
         display: none;
     }
+}
+#upload-toggle {                   
+    margin-right: 1rem;
 }
