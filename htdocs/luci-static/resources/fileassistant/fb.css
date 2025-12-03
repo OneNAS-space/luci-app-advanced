@@ -11,9 +11,10 @@
     box-sizing: border-box;
 }
 .fb-container .panel-title {
-    padding-bottom: 0;
-    width: 50%;
-    border-bottom: none;
+    padding-bottom: 0.75rem;
+    margin-left: 1rem;
+    margin-right: 0;
+    width: calc(100% - 1rem);
 }
 .fb-container .panel-container {
     display: flex;
