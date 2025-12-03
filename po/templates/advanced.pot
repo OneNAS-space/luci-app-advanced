@@ -1,0 +1,89 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+msgid "Advanced Function"
+msgstr ""
+
+msgid "File Assistant"
+msgstr ""
+
+msgid "Integrated upload, deletion and installation, non-professionals, please operate carefully."
+msgstr ""
+
+msgid "File List"
+msgstr ""
+
+msgid "Open Upload"
+msgstr ""
+
+msgid "Collapse Upload"
+msgstr ""
+
+msgid "Execute the upload"
+msgstr ""
+
+msgid "This page is the document content of configuring %s. It will take effect after Save & Apply"
+msgstr ""
+
+msgid "Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option."
+msgstr ""
+
+msgid "Network"
+msgstr ""
+
+msgid "Wireless"
+msgstr ""
+
+msgid "ARP binding"
+msgstr ""
+
+msgid "Firewall"
+msgstr ""
+
+msgid "Load balancing"
+msgstr ""
+
+msgid "Parental control"
+msgstr ""
+
+msgid "Timed setting"
+msgstr ""
+
+msgid "Wake-on-LAN"
+msgstr ""
+
+msgid "Do u want to delete %s ?"
+msgstr ""
+
+msgid "This is a directory. Please select the ipk file to install it!"
+msgstr ""
+
+msgid "Only files in ipk format are allowed to be installed!"
+msgstr ""
+
+msgid "Do u want to install %s ?"
+msgstr ""
+
+msgid "Successful installation."
+msgstr ""
+
+msgid "Installation failed. Please check the file format."
+msgstr ""
+
+msgid "Please enter the new file name."
+msgstr ""
+
+msgid ".. Return to Parent Directory"
+msgstr ""
+
+msgid "Install"
+msgstr ""
+
+msgid "Rename"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "The upload failed. Please try again later...."
+msgstr ""
