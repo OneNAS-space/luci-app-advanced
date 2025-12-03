@@ -9,7 +9,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Advanced Function"
-msgstr "高级设置"
+msgstr "高级功能"
 
 msgid "File Assistant"
 msgstr "文件助手"
@@ -35,17 +35,8 @@ msgstr "本页是配置 %s 的文档内容。应用保存后自动重启生效�
 msgid "Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option."
 msgstr "以数字符号 (#) 或分号 (;) 开头的行被视为注释；删除 (#) 或分号 (;) 可启用指定选项。"
 
-msgid "Network"
-msgstr "网络"
-
-msgid "Wireless"
-msgstr "无线"
-
 msgid "ARP binding"
 msgstr "ARP绑定"
-
-msgid "Firewall"
-msgstr "防火墙"
 
 msgid "Load balancing"
 msgstr "负载均衡"
