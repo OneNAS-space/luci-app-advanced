@@ -29,7 +29,7 @@ msgstr "收起上传"
 msgid "Execute the upload"
 msgstr "执行上传"
 
-msgid "This page is the document content of configuring %s. It will take effect after Save & Apply"msgstr "本页直接编辑配置文档。除非您知道自己在做什么，否则请勿随意修改这些文档。配置不正确可能会导致无法启动等严重错误。"
+msgid "This page is the document content of configuring %s. It will take effect after Save & Apply"
 msgstr "本页是配置 %s 的文档内容。应用保存后自动重启生效。"
 
 msgid "Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option."
