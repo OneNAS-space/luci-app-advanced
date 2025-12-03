@@ -210,13 +210,12 @@ function index()
         return
     end
     local e
-    e=entry({"admin","system","advanced"},cbi("advanced"),_("Advanced settings"),60)
+    e=entry({"admin","system","advanced"},cbi("advanced"),_("Advanced Function"),60)
     e.dependent=true
 
     local fa_base = entry({"admin", "system", "advanced", "fileassistant"}, nil, nil)
     fa_base.i18n = "base"
     
-    -- 此时 fileassistant_list 等函数已定义，不会为 nil
     entry({"admin", "system", "advanced", "fileassistant", "list"}, call("fileassistant_list"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "open"}, call("fileassistant_open"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "delete"}, call("fileassistant_delete"), nil).leaf = true
