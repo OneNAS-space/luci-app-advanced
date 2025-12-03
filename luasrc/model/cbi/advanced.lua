@@ -1,7 +1,7 @@
 local e=require"nixio.fs"
 local t=require"luci.sys"
 local t=luci.model.uci.cursor()
-m=Map("advanced",translate("Advanced Function"),translate("<font color=\"Red\"><strong>Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents. Incorrect configuration may cause errors such as unable to turn on.</strong></font><br/>"))
+m=Map("advanced",translate("Professional Functions"),translate("<font color=\"Red\"><strong>Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents. Incorrect configuration may cause errors such as unable to turn on.</strong></font><br/>"))
 m.apply_on_parse=true
 s=m:section(TypedSection,"advanced")
 s.anonymous=true
