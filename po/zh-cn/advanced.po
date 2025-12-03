@@ -1,7 +1,7 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
-msgid "Advanced Settings"
+msgid "Advanced Function"
 msgstr "高级设置"
 
 msgid "File Assistant"
@@ -10,14 +10,14 @@ msgstr "文件助手"
 msgid "Integrated upload, deletion and installation, non-professionals, please operate carefully."
 msgstr "集成上传、删除及安装功能，非专业人员请谨慎操作。"
 
-msgid "File assistant"
-msgstr "文件管理"
-
 msgid "File List"
 msgstr "文件列表"
 
-msgid "Upload file"
-msgstr "上传文件"
+msgid "Open Upload"
+msgstr "开启上传"
+
+msgid "Collapse Upload"
+msgstr "收起上传"
 
 msgid "Execute the upload"
 msgstr "执行上传"
@@ -73,8 +73,8 @@ msgstr "安装失败，请检查文件格式!"
 msgid "Please enter the new file name:"
 msgstr "请输入新的文件名"
 
-msgid "..Return to the superior directory"
-msgstr ".. 返回上级目录"
+msgid ".. Return to Parent Directory"
+msgstr ".. 返回上一级目录"
 
 msgid "Install"
 msgstr "安装"
