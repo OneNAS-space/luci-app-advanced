@@ -36,7 +36,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./root/etc/uci-defaults/* $(1)/etc/uci-defaults/
 
-    $(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	po2lmo ./po/zh-cn/advanced.po $(1)/usr/lib/lua/luci/i18n/advanced.zh-cn.lmo
 endef
 
