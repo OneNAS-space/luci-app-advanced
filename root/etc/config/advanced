@@ -1,2 +1,5 @@
 config advanced
-  	option enabled '1'
+    option enabled '1'
+
+config sysinfo
+    option enabled '0'
