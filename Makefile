@@ -29,7 +29,10 @@ define Package/$(PKG_NAME)/install
 	
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./root/etc/config/advanced $(1)/etc/config/
-	
+
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_BIN) ./root/etc/sysinfo $(1)/etc/
+
 	$(INSTALL_DIR) $(1)/www
 	cp -pR ./htdocs/* $(1)/www/
 	
