@@ -1,0 +1,78 @@
+<%
+local PROFILE_PATH = "/etc/profile"
+local SYSINFO_LINE = "/etc/sysinfo"
+
+-- --------------------------------------------------------------------------
+-- 1. 处理 POST 提交
+-- --------------------------------------------------------------------------
+-- 检查是否有按钮被点击，按钮名为 'sysinfo_action'
+if luci.http.formvalue("sysinfo_action") then
+    local action_value = luci.http.formvalue("sysinfo_action")
+    local target_is_enable = (action_value == "1")
+
+    -- 1. 清理文件（不论启用还是禁用，都先删除旧配置）
+    local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
+    luci.sys.exec(delete_cmd)
+    
+    if target_is_enable then
+        -- 2. 启用操作
+        local ensure_newline_cmd = "echo >> %q" % PROFILE_PATH
+        luci.sys.exec(ensure_newline_cmd)
+
+        local append_cmd = "echo -e '%s\\n' >> %q" %{ SYSINFO_LINE, PROFILE_PATH }
+        luci.sys.exec(append_cmd)
+
+        luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
+    end
+
+    -- 3. 强制页面重定向以刷新状态
+    luci.http.redirect(luci.dispatcher.build_url("admin", "advanced", "sysinfo_tab"))
+end
+
+-- --------------------------------------------------------------------------
+-- 2. 准备渲染数据
+-- --------------------------------------------------------------------------
+local file_is_enabled = (luci.sys.call("grep -Fxq %q %q" %{ SYSINFO_LINE, PROFILE_PATH }) == 0)
+local state = file_is_enabled and "1" or "0"
+
+local button_class
+local button_text
+local status_text
+local action_value
+
+if state == "1" then
+    -- 当前状态：启用。按钮动作：禁用 (Negative/Red) -> 传值 "0"
+    button_class = "btn cbi-button cbi-button-negative"
+    button_text  = translate("Click to disable")
+    status_text  = "<font color=\"Green\"><strong>" .. translate("Already Enabled") .. "</strong></font>"
+    action_value = "0"
+else
+    -- 当前状态：禁用。按钮动作：启用 (Positive/Green) -> 传值 "1"
+    button_class = "btn cbi-button cbi-button-positive"
+    button_text  = translate("Click to enable")
+    status_text  = "<font color=\"Red\"><strong>" .. translate("Already Disabled") .. "</strong></font>"
+    action_value = "1"
+end
+
+%>
+
+<div class="cbi-value-field">
+    <div class="cbi-value-description">
+        <!-- 状态文本 -->
+        <span style="padding-right: 15px; display: inline-block;">
+            <%=status_text%>
+        </span>
+        
+        <!-- 按钮：使用 type="submit" 提交表单，name="sysinfo_action" 对应上面的 POST 处理 -->
+        <input class="<%=button_class%>" 
+            type="submit" 
+            name="sysinfo_action" 
+            value="<%=action_value%>" 
+            style="margin-right: 10px;" />
+        
+        <!-- 描述文本 -->
+        <span style="font-style: italic;">
+            <%=button_text%>
+        </span>
+    </div>
+</div>
