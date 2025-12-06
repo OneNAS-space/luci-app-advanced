@@ -1,0 +1,96 @@
+<%+cbi/valueheader%>
+<%
+local uci = require "luci.model.uci".cursor()
+local sys = require "luci.sys" 
+local fs = require "nixio.fs"
+local file_is_enabled = (sys.call("grep -Fxq \"/etc/sysinfo\" \"/etc/profile\"") == 0)
+local state = file_is_enabled and "1" or "0"
+local status_text
+local status_color
+local hostname = uci:get("system", "@system[0]", "hostname") or "OpenWrt"
+local banner_content = ""
+local hndl_banner = io.open("/etc/banner", "r")
+if hndl_banner then
+    banner_content = hndl_banner:read("*a")
+    hndl_banner:close()
+end
+
+local prompt_line = string.format("root@%s:~# ", hostname)
+
+local sysinfo_stats = ""
+if fs.access("/etc/sysinfo") then
+    sysinfo_stats = sys.exec("/etc/sysinfo")
+else
+    sysinfo_stats = "Error: /etc/sysinfo script not found or not executable.\n"
+end
+
+local terminal_output_enabled = banner_content .. sysinfo_stats .. prompt_line
+local terminal_output_disabled = banner_content .. prompt_line
+
+local terminal_preview_content
+local button_html
+
+if state == "1" then
+    status_text  = translate("Enabled")
+    status_color = "Green"
+    terminal_preview_content = terminal_output_enabled
+    button_html = string.format([[
+        <input class="btn cbi-button cbi-button-negative" 
+            type="button" 
+            id="sysinfo_disable_btn"
+            onclick="toggleSysInfo('disable', 'sysinfo_disable_btn')"
+            value="%s" 
+            style="margin-right: 10px;" />
+    ]], translate("Click to disable"))
+else
+    status_text  = translate("Disabled")
+    status_color = "Red"
+    terminal_preview_content = terminal_output_disabled
+    button_html = string.format([[
+        <input class="btn cbi-button cbi-button-positive" 
+            type="button" 
+            id="sysinfo_enable_btn"
+            onclick="toggleSysInfo('enable', 'sysinfo_enable_btn')"
+            value="%s" 
+            style="margin-right: 10px;" />
+    ]], translate("Click to enable"))
+end
+%>
+
+<script type="text/javascript">//<![CDATA[
+    function toggleSysInfo(action, btn_id) {
+        var btn = document.getElementById(btn_id);
+        var original_value = btn.value;
+        var new_state = (action === 'enable' ? 1 : 0);
+        btn.disabled = true;
+        btn.value = '<%:Applying...%>';
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "sysinfo")%>', { value: new_state }, function(x, data) {
+            btn.disabled = false;
+            if (data && data.code === 0) {
+                location.reload(); 
+            } else {
+                btn.value = original_value; 
+                alert('<%:Failed to change status: %> ' + (data ? data.error : x.statusText));
+            }
+        });
+    }
+//]]></script>
+
+<div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;">
+    <strong><%=translate("Terminal System Infomation")%>:</strong> <font color="<%=status_color%>"><strong><%=status_text%></strong></font>.
+    <div style="background-color: #222; padding: 10px; margin-top: 1rem; border-radius: 5px; max-width: 100%;">
+        <pre style="color: #eeeeee; font-family: 'Consolas', 'Monaco', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 11px;">
+<%=terminal_preview_content%>
+        </pre>
+    </div>
+</div>
+
+<div class="cbi-value">
+    <div class="cbi-value-field">
+        <div class="cbi-value-description">
+            <%=button_html%>
+        </div>
+    </div>
+</div>
+
+<%+cbi/valuefooter%>

@@ -7,8 +7,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
-PKG_VERSION:=2.2.1
-PKG_RELEASE:=20251203
+PKG_VERSION:=2.2.2
+PKG_RELEASE:=20251206
 PKG_BUILD_DEPENDS:=luci-base/host
 
 define Package/$(PKG_NAME)
@@ -29,7 +29,10 @@ define Package/$(PKG_NAME)/install
 	
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./root/etc/config/advanced $(1)/etc/config/
-	
+
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_BIN) ./root/etc/sysinfo $(1)/etc/
+
 	$(INSTALL_DIR) $(1)/www
 	cp -pR ./htdocs/* $(1)/www/
 	

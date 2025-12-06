@@ -1,6 +1,12 @@
 local e=require"nixio.fs"
-local t=require"luci.sys"
 local t=luci.model.uci.cursor()
+local cbi = require "luci.cbi"
+local Map = cbi.Map
+local TypedSection = cbi.TypedSection
+local Value = cbi.Value
+local ListValue = cbi.ListValue
+local SimpleSection = cbi.SimpleSection
+
 m=Map("advanced",translate("Professional Functions"),"<font color=\"Red\"><strong>" .. translate("advanced_desc") .. "</strong></font><br/>")
 m.apply_on_parse=true
 s=m:section(TypedSection,"advanced")
@@ -8,6 +14,10 @@ s.anonymous=true
 
 local description_template = translate("This page is the document content of configuring %s. It will take effect after Save & Apply")
 local option_description = translate("Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option.")
+
+s:tab("sysinfo_tab", translate("Goodies"), translate("Here is the bonus function."))
+local ts_view = s:taboption("sysinfo_tab", Value, "_sysinfo_view")
+ts_view.template = "sysinfo"
 
 local file_path_dnsmasq = "/etc/dnsmasq.conf"
 if nixio.fs.access(file_path_dnsmasq)then

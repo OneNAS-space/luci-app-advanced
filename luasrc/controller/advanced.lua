@@ -5,6 +5,33 @@ require "nixio.fs"
 local nixio = require "nixio"
 local u = require "luci.util"
 
+function advanced_sysinfo(value)
+    luci.http.header("Content-Type", "application/json")
+    
+    local PROFILE_PATH = "/etc/profile"
+    local SYSINFO_LINE = "/etc/sysinfo"
+    local is_enable = (luci.http.formvalue("value") == "1")
+
+    if not nixio.fs.access(PROFILE_PATH) then
+        luci.http.write('{ "code": 1, "error": "Profile file not found." }')
+        return
+    end
+
+    local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
+    luci.sys.exec(delete_cmd)
+    
+    if is_enable then
+        local ensure_newline_cmd = "echo >> %q" % PROFILE_PATH
+        luci.sys.exec(ensure_newline_cmd)
+
+        local append_cmd = "echo -e '%s\\n' >> %q" %{ SYSINFO_LINE, PROFILE_PATH }
+        luci.sys.exec(append_cmd)
+        luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
+    end
+
+    luci.http.write('{ "code": 0, "status": "%s" }' % (is_enable and "enabled" or "disabled"))
+end
+
 function list_response(path, success)
     luci.http.prepare_content("application/json")
     local result
@@ -212,6 +239,8 @@ function index()
     local e
     e=entry({"admin","system","advanced"},cbi("advanced"),_("Advanced Function"),60)
     e.dependent=true
+
+    entry({"admin", "system", "advanced", "sysinfo"}, call("advanced_sysinfo"), nil).leaf = true
 
     local fa_base = entry({"admin", "system", "advanced", "fileassistant"}, nil, nil)
     fa_base.i18n = "base"
