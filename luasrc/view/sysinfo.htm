@@ -3,16 +3,11 @@
 local uci = require "luci.model.uci".cursor()
 local sys = require "luci.sys" 
 local fs = require "nixio.fs"
-
 local file_is_enabled = (sys.call("grep -Fxq \"/etc/sysinfo\" \"/etc/profile\"") == 0)
 local state = file_is_enabled and "1" or "0"
-
 local status_text
 local status_color
-local effect_description
-
 local hostname = uci:get("system", "@system[0]", "hostname") or "OpenWrt"
-
 local banner_content = ""
 local hndl_banner = io.open("/etc/banner", "r")
 if hndl_banner then
@@ -36,9 +31,8 @@ local terminal_preview_content
 local button_html
 
 if state == "1" then
-    status_text  = translate("Already Enabled")
+    status_text  = translate("Enabled")
     status_color = "Green"
-    effect_description = translate("Detailed system infomation is displayed.")
     terminal_preview_content = terminal_output_enabled
     button_html = string.format([[
         <input class="btn cbi-button cbi-button-negative" 
@@ -49,9 +43,8 @@ if state == "1" then
             style="margin-right: 10px;" />
     ]], translate("Click to disable"))
 else
-    status_text  = translate("Already Disabled")
+    status_text  = translate("Disabled")
     status_color = "Red"
-    effect_description = translate("Only a basic message is displayed.")
     terminal_preview_content = terminal_output_disabled
     button_html = string.format([[
         <input class="btn cbi-button cbi-button-positive" 
@@ -83,22 +76,18 @@ end
     }
 //]]></script>
 
-<div class="cbi-section-descr" style="padding: 10px; background-color: #f9f9f9; border: 1px solid #eee;">
-    <%=effect_description%>
-    <div style="background-color: #000; padding: 10px; margin-top: 10px; border-radius: 5px; max-width: 75%;">
-        <pre style="color: #00ff00; font-family: 'Consolas', 'Monaco', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 11px;">
+<div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;">
+    <strong><%=translate("Terminal System Infomation")%>:</strong> <font color="<%=status_color%>"><strong><%=status_text%></strong></font>.
+    <div style="background-color: #222; padding: 10px; margin-top: 1rem; border-radius: 5px; max-width: 100%;">
+        <pre style="color: #eeeeee; font-family: 'Consolas', 'Monaco', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 11px;">
 <%=terminal_preview_content%>
         </pre>
     </div>
 </div>
 
 <div class="cbi-value">
-    <label class="cbi-value-title" style="margin-top: 0.45rem;"><%=translate("Terminal System Infomation")%></label>
     <div class="cbi-value-field">
         <div class="cbi-value-description">
-            <span style="padding-right: 15px; display: inline-block;">
-                <font color="<%=status_color%>"><strong><%=status_text%></strong></font>
-            </span>
             <%=button_html%>
         </div>
     </div>
