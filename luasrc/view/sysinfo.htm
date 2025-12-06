@@ -1,78 +1,84 @@
 <%
-local PROFILE_PATH = "/etc/profile"
-local SYSINFO_LINE = "/etc/sysinfo"
-
--- --------------------------------------------------------------------------
--- 1. 处理 POST 提交
--- --------------------------------------------------------------------------
--- 检查是否有按钮被点击，按钮名为 'sysinfo_action'
-if luci.http.formvalue("sysinfo_action") then
-    local action_value = luci.http.formvalue("sysinfo_action")
-    local target_is_enable = (action_value == "1")
-
-    -- 1. 清理文件（不论启用还是禁用，都先删除旧配置）
-    local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
-    luci.sys.exec(delete_cmd)
-    
-    if target_is_enable then
-        -- 2. 启用操作
-        local ensure_newline_cmd = "echo >> %q" % PROFILE_PATH
-        luci.sys.exec(ensure_newline_cmd)
-
-        local append_cmd = "echo -e '%s\\n' >> %q" %{ SYSINFO_LINE, PROFILE_PATH }
-        luci.sys.exec(append_cmd)
-
-        luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
-    end
-
-    -- 3. 强制页面重定向以刷新状态
-    luci.http.redirect(luci.dispatcher.build_url("admin", "advanced"))
-end
-
--- --------------------------------------------------------------------------
--- 2. 准备渲染数据
--- --------------------------------------------------------------------------
-local file_is_enabled = (luci.sys.call("grep -Fxq %q %q" %{ SYSINFO_LINE, PROFILE_PATH }) == 0)
+local file_is_enabled = (luci.sys.call("grep -Fxq \"/etc/sysinfo\" \"/etc/profile\"") == 0)
 local state = file_is_enabled and "1" or "0"
 
-local button_class
-local button_text
 local status_text
-local action_value
+local effect_description
 
 if state == "1" then
-    -- 当前状态：启用。按钮动作：禁用 (Negative/Red) -> 传值 "0"
-    button_class = "btn cbi-button cbi-button-negative"
-    button_text  = translate("Click to disable")
     status_text  = "<font color=\"Green\"><strong>" .. translate("Already Enabled") .. "</strong></font>"
-    action_value = "0"
+    effect_description = translate("Screenshot when Enabled: Detailed system info is displayed.")
 else
-    -- 当前状态：禁用。按钮动作：启用 (Positive/Green) -> 传值 "1"
-    button_class = "btn cbi-button cbi-button-positive"
-    button_text  = translate("Click to enable")
     status_text  = "<font color=\"Red\"><strong>" .. translate("Already Disabled") .. "</strong></font>"
-    action_value = "1"
+    effect_description = translate("Screenshot when Disabled: Only a basic welcome message is displayed.")
 end
-
 %>
 
-<div class="cbi-value-field">
-    <div class="cbi-value-description">
-        <!-- 状态文本 -->
-        <span style="padding-right: 15px; display: inline-block;">
-            <%=status_text%>
-        </span>
+<script type="text/javascript">//<![CDATA[
+    
+    function toggleSysInfo(action, btn_id) {
+        var btn = document.getElementById(btn_id);
+        var original_value = btn.value;
+        var new_state = (action === 'enable' ? 1 : 0);
         
-        <!-- 按钮：使用 type="submit" 提交表单，name="sysinfo_action" 对应上面的 POST 处理 -->
-        <input class="<%=button_class%>" 
-            type="submit" 
-            name="sysinfo_action" 
-            value="<%=action_value%>" 
-            style="margin-right: 10px;" />
+        btn.disabled = true;
+        btn.value = '<%:Applying...%>';
+
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "sysinfo")%>', { value: new_state }, function(x, data) {
+            btn.disabled = false;
+            
+            if (data && data.code === 0) {
+                location.reload(); 
+            } else {
+                btn.value = original_value; 
+                alert('<%:Failed to change status: %> ' + (data ? data.error : x.statusText));
+            }
+        });
+    }
+
+//]]></script>
+
+<div class="cbi-section-descr" style="padding: 10px; background-color: #f9f9f9; border: 1px solid #eee;">
+    <strong><%:Effect Preview%>:</strong>
+    <p style="margin-top: 5px;"><%=effect_description%></p>
+
+    <div style="text-align: center; border: 1px dashed #ccc; padding: 15px; background-color: #fff; margin-top: 10px;">
+        <% if state == "1" then %>
         
-        <!-- 描述文本 -->
-        <span style="font-style: italic;">
-            <%=button_text%>
-        </span>
+        <br>
+        <em style="color: green;"><%:Terminal Output (Enabled)></em>
+        <% else %>
+        
+        <br>
+        <em style="color: red;"><%:Terminal Output (Disabled)></em>
+        <% end %>
+    </div>
+</div>
+
+<div class="cbi-value">
+    <label class="cbi-value-title" style="margin-top: 0.45rem;"><%=translate("Terminal System Infomation")%></label>
+    <div class="cbi-value-field">
+        <div class="cbi-value-description">
+            <span style="padding-right: 15px; display: inline-block;">
+                <%=status_text%>
+            </span>
+            
+            <% if state == "1" then %>
+            <input class="btn cbi-button cbi-button-negative" 
+                type="button" 
+                id="sysinfo_disable_btn"
+                onclick="toggleSysInfo('disable', 'sysinfo_disable_btn')"
+                value="<%=translate("Click to disable")%>" 
+                style="margin-right: 10px;" />
+            <% else %>
+            <input class="btn cbi-button cbi-button-positive" 
+                type="button" 
+                id="sysinfo_enable_btn"
+                onclick="toggleSysInfo('enable', 'sysinfo_enable_btn')"
+                value="<%=translate("Click to enable")%>" 
+                style="margin-right: 10px;" />
+            <% end %>
+    
+        </div>
     </div>
 </div>
