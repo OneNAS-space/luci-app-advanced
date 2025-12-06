@@ -90,3 +90,24 @@ msgstr ""
 
 msgid "The upload failed. Please try again later...."
 msgstr ""
+
+msgid "Goodies"
+msgstr ""
+
+msgid "Here is the bonus function."
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Click to disable"
+msgstr ""
+
+msgid "Click to enable"
+msgstr ""
+
+msgid "Terminal System Infomation"
+msgstr ""
