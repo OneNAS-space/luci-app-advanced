@@ -1,6 +1,6 @@
-### 新增功能
-- 增加了 Terminal system information 作为安装本软件包的附加奖励， 可以自行开启或关闭
-开启后效果如下：
+### New functions
+- `Terminal system information` has been added as an additional reward for installing this software package, which can be turned on or off by yourself.
+The effect enabled is as follows：
 ```
   _______                     ________        __
  |       |.-----.-----.-----.|  |  |  |.----.|  |_
@@ -35,6 +35,6 @@
 
 root@MX5300:~#
 ```
-### 几个小改进
-- 更名主菜单为 `Advanced Function`
-- 将原本独立菜单项 `File manager`/`File Assistant` 统一合并到主菜单项中，作为 `s.tab` 存在
+### A few small improvements
+- Rename the main menu to `Advanced Function`
+- Merge the original independent menu item `File manager`/`File Assistant` into the main menu item and exist as `s.tab`
