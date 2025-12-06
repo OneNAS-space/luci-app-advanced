@@ -1,9 +1,8 @@
 <%+cbi/valueheader%>
 <%
--- 导入 UCI, SYS, 和 NIXIO.FS 模块
 local uci = require "luci.model.uci".cursor()
 local sys = require "luci.sys" 
-local fs = require "nixio.fs"    -- 关键修复: 导入 nixio.fs
+local fs = require "nixio.fs"
 
 local file_is_enabled = (sys.call("grep -Fxq \"/etc/sysinfo\" \"/etc/profile\"") == 0)
 local state = file_is_enabled and "1" or "0"
@@ -12,10 +11,8 @@ local status_text
 local status_color
 local effect_description
 
--- 1. 通过 UCI API 获取主机名
 local hostname = uci:get("system", "@system[0]", "hostname") or "OpenWrt"
 
--- 2. 读取 /etc/banner
 local banner_content = ""
 local hndl_banner = io.open("/etc/banner", "r")
 if hndl_banner then
@@ -23,20 +20,15 @@ if hndl_banner then
     hndl_banner:close()
 end
 
--- 3. 构建动态命令提示符
 local prompt_line = string.format("root@%s:~# ", hostname)
 
--- 4. 动态获取 /etc/sysinfo 的执行输出作为 stats
 local sysinfo_stats = ""
--- 关键修复: 使用 fs.access 检查文件是否存在且可执行
 if fs.access("/etc/sysinfo") then
-    -- 使用 luci.sys.exec 执行脚本并捕获输出
     sysinfo_stats = sys.exec("/etc/sysinfo")
 else
     sysinfo_stats = "Error: /etc/sysinfo script not found or not executable.\n"
 end
 
--- 5. 组合最终的终端预览内容
 local terminal_output_enabled = banner_content .. sysinfo_stats .. prompt_line
 local terminal_output_disabled = banner_content .. prompt_line
 
@@ -46,7 +38,7 @@ local button_html
 if state == "1" then
     status_text  = translate("Already Enabled")
     status_color = "Green"
-    effect_description = translate("Screenshot when Enabled: Detailed system info is displayed (Actual output of /etc/sysinfo).")
+    effect_description = translate("Detailed system infomation is displayed.")
     terminal_preview_content = terminal_output_enabled
     button_html = string.format([[
         <input class="btn cbi-button cbi-button-negative" 
@@ -59,7 +51,7 @@ if state == "1" then
 else
     status_text  = translate("Already Disabled")
     status_color = "Red"
-    effect_description = translate("Screenshot when Disabled: Only a basic welcome message is displayed.")
+    effect_description = translate("Only a basic message is displayed.")
     terminal_preview_content = terminal_output_disabled
     button_html = string.format([[
         <input class="btn cbi-button cbi-button-positive" 
@@ -73,18 +65,14 @@ end
 %>
 
 <script type="text/javascript">//<![CDATA[
-    
     function toggleSysInfo(action, btn_id) {
         var btn = document.getElementById(btn_id);
         var original_value = btn.value;
         var new_state = (action === 'enable' ? 1 : 0);
-        
         btn.disabled = true;
         btn.value = '<%:Applying...%>';
-
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "sysinfo")%>', { value: new_state }, function(x, data) {
             btn.disabled = false;
-            
             if (data && data.code === 0) {
                 location.reload(); 
             } else {
@@ -93,14 +81,11 @@ end
             }
         });
     }
-
 //]]></script>
 
 <div class="cbi-section-descr" style="padding: 10px; background-color: #f9f9f9; border: 1px solid #eee;">
-    <strong><%:Effect Preview%>:</strong>
-    <p style="margin-top: 5px;"><%=effect_description%></p>
-
-    <div style="background-color: #000; padding: 10px; margin-top: 10px; border-radius: 5px; max-width: 75%; margin-left: auto; margin-right: auto;">
+    <%=effect_description%>
+    <div style="background-color: #000; padding: 10px; margin-top: 10px; border-radius: 5px; max-width: 75%;">
         <pre style="color: #00ff00; font-family: 'Consolas', 'Monaco', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 11px;">
 <%=terminal_preview_content%>
         </pre>
@@ -114,9 +99,7 @@ end
             <span style="padding-right: 15px; display: inline-block;">
                 <font color="<%=status_color%>"><strong><%=status_text%></strong></font>
             </span>
-            
             <%=button_html%>
-    
         </div>
     </div>
 </div>
