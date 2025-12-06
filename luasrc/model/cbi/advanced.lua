@@ -15,36 +15,9 @@ s.anonymous=true
 local description_template = translate("This page is the document content of configuring %s. It will take effect after Save & Apply")
 local option_description = translate("Each line (;) of the numerical symbol (#) or semicon at the beginning is regarded as a comment; delete (;) to enable the specified option.")
 
-local PROFILE_PATH = "/etc/profile"
-local SYSINFO_LINE = "/etc/sysinfo"
-s:tab("sysinfo_tab", translate("Goodies"))
-local profile_switch = s:taboption("sysinfo_tab", Value, "profile_status", translate("Terminal System Infomation"))
-profile_switch.template = "cbi/button"
-profile_switch.cfgvalue = function(self, section)
-local file_is_enabled = (luci.sys.call("grep -Fxq %q %q" %{ SYSINFO_LINE, PROFILE_PATH }) == 0)
-local state = file_is_enabled and "1" or "0"
-if state == "1" then
-self.description = "<font color=\"Green\"><strong>" .. translate("Already Enabled") .. "</strong></font>"
-self.inputtitle = translate("Click to Disable")
-else
-self.description = "<font color=\"Red\"><strong>" .. translate("Already Disabled") .. "</strong></font>"
-self.inputtitle = translate("Click to Enable")
-end
-return state
-end
-profile_switch.write = function(self, section, value)
-local current_state = self:cfgvalue(section)
-local target_is_enable = (current_state == "0")
-local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
-luci.sys.exec(delete_cmd)
-if target_is_enable then
-local ensure_newline_cmd = "echo >> %q" % PROFILE_PATH
-luci.sys.exec(ensure_newline_cmd)
-local append_cmd = "echo -e '%s\\n' >> %q" %{ SYSINFO_LINE, PROFILE_PATH }
-luci.sys.exec(append_cmd)
-luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
-end
-end
+s:tab("sysinfo_tab", translate("Goodies"), translate("Here is the bonus function."))
+local ts_view = s:taboption("sysinfo_tab", Value, "_sysinfo_view")
+ts_view.template = "sysinfo"
 
 local file_path_dnsmasq = "/etc/dnsmasq.conf"
 if nixio.fs.access(file_path_dnsmasq)then
