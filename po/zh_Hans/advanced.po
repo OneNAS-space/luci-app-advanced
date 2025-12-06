@@ -88,3 +88,24 @@ msgstr "删除"
 
 msgid "The upload failed. Please try again later...."
 msgstr "上传失败，请稍后再试..."
+
+msgid "Goodies"
+msgstr "彩蛋"
+
+msgid "Here is the bonus function."
+msgstr "这是安装本软件附带的奖励"
+
+msgid "Enabled"
+msgstr "已开启"
+
+msgid "Disabled"
+msgstr "已关闭"
+
+msgid "Click to disable"
+msgstr "点击按钮关闭"
+
+msgid "Click to enable"
+msgstr "点击按钮开启"
+
+msgid "Terminal System Infomation"
+msgstr "终端系统信息"
