@@ -1,6 +1,6 @@
 # Copyright (C) 2025  OneNAS-space <https://github.com/OneNAS-space/luci-app-advanced/>
 #
-# This is free software, licensed under the Apache License, Version 2.0 .
+# This is free software, licensed under the MIT License
 #
 
 include $(TOPDIR)/rules.mk
@@ -8,7 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
 PKG_VERSION:=2.2.3
-PKG_RELEASE:=20251206
+PKG_RELEASE:=20251210
 PKG_BUILD_DEPENDS:=luci-base/host
 
 define Package/$(PKG_NAME)
