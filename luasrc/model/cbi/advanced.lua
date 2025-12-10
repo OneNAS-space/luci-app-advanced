@@ -8,7 +8,7 @@ local ListValue = cbi.ListValue
 local SimpleSection = cbi.SimpleSection
 
 m=Map("advanced",translate("Professional Functions"),"<font color=\"Red\"><strong>" .. translate("advanced_desc") .. "</strong></font><br/>")
-m.apply_on_parse=true
+m.apply_on_parse=false
 s=m:section(TypedSection,"advanced")
 s.anonymous=true
 
@@ -379,7 +379,7 @@ end
 end
 end
 
-local file_path_agh = "/etc/config/AdGuardHome"
+local file_path_agh = "/etc/AdGuardHome.yaml"
 if nixio.fs.access(file_path_agh)then
 s:tab("aghconf",translate("AdGuard Home"),string.format(description_template, file_path_agh))
 conf=s:taboption("aghconf",Value,"aghconf",nil,option_description)
