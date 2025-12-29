@@ -50,4 +50,13 @@ define Package/$(PKG_NAME)/install
 	cp -pR ./htdocs/* $(1)/www/
 endef
 
+define Package/$(PKG_NAME)/postinst
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	/etc/init.d/bypass_guard enable
+	/etc/init.d/rpcd reload
+fi
+exit 0
+endef
+
 $(eval $(call BuildPackage,$(PKG_NAME)))
