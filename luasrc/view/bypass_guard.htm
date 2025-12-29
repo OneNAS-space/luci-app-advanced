@@ -48,7 +48,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
 <script type="text/javascript">//<![CDATA[
     <% if is_running then %>
-    XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', nil,
+    XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
         function(x, data) {
             var tb = document.getElementById('bypass_status_table');
             if (!tb) return;
@@ -78,7 +78,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     document.addEventListener("DOMContentLoaded", function() {
         var cb = document.getElementById('natmap_enable_cb');
         if (cb) {
-            XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', nil, function(x, data) {
+            XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', null, function(x, data) {
                 if (data) {
                     cb.checked = (data.enable_natmap === '1');
                 }
