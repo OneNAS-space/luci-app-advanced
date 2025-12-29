@@ -279,6 +279,31 @@ function action_guard_status()
     luci.http.write_json({ code = 0 })
 end
 
+function action_get_config()
+    local uci = require "luci.model.uci".cursor()
+    local rv = {
+        enable_natmap = uci:get("advanced", "global", "enable_natmap") or "0"
+    }
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(rv)
+end
+
+-- 异步设置 Natmap 开关
+function action_set_natmap()
+    local set = luci.http.formvalue("set")
+    local sys = require "luci.sys"
+    sys.exec(string.format("uci set advanced.global.enable_natmap='%s' && uci commit advanced", set))
+    
+    -- 如果服务正在运行，立即重启以应用联动逻辑
+    local running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
+    if running then
+        sys.exec("/etc/init.d/bypass_guard restart")
+    end
+    
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ code = 0 })
+end
+
 function index()
     if not nixio.fs.access("/etc/config/advanced")then
         return
@@ -301,4 +326,6 @@ function index()
 
     entry({"admin", "system", "advanced", "guard_data"}, call("action_guard_data"), nil).leaf = true
     entry({"admin", "system", "advanced", "guard_status"}, call("action_guard_status"), nil).leaf = true
+    entry({"admin", "system", "advanced", "get_guard_config"}, call("action_get_config"), nil).leaf = true
+    entry({"admin", "system", "advanced", "set_natmap"}, call("action_set_natmap"), nil).leaf = true
 end
