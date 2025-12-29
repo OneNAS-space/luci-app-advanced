@@ -232,6 +232,53 @@ function to_mime(filename)
     return "application/octet-stream"
 end
 
+local function format_bytes(bytes)
+    bytes = tonumber(bytes) or 0
+    if bytes >= 1073741824 then
+        return string.format("%.2f GiB", bytes / 1073741824)
+    elseif bytes >= 1048576 then
+        return string.format("%.2f MiB", bytes / 1048576)
+    elseif bytes >= 1024 then
+        return string.format("%.2f KiB", bytes / 1024)
+    else
+        return bytes .. " B"
+    end
+end
+
+function action_guard_data()
+    local sys = require "luci.sys"
+    local rv = { rules = {} }
+    local raw = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null")
+
+    for packets, bytes, comment in raw:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+        table.insert(rv.rules, {
+            name    = comment,
+            packets = packets,
+            bytes   = format_bytes(bytes),
+            comment = "Matched"
+        })
+    end
+
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(rv)
+end
+
+function action_guard_status()
+    local set = luci.http.formvalue("set")
+    local sys = require "luci.sys"
+    
+    if set == "enable" then
+        sys.exec("uci set advanced.global.enable_guard='1' && uci commit advanced")
+        sys.exec("/etc/init.d/bypass_guard restart")
+    elseif set == "disable" then
+        sys.exec("uci set advanced.global.enable_guard='0' && uci commit advanced")
+        sys.exec("/etc/init.d/bypass_guard stop")
+    end
+    
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ code = 0 })
+end
+
 function index()
     if not nixio.fs.access("/etc/config/advanced")then
         return
@@ -244,11 +291,14 @@ function index()
 
     local fa_base = entry({"admin", "system", "advanced", "fileassistant"}, nil, nil)
     fa_base.i18n = "base"
-    
+
     entry({"admin", "system", "advanced", "fileassistant", "list"}, call("fileassistant_list"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "open"}, call("fileassistant_open"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "delete"}, call("fileassistant_delete"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "rename"}, call("fileassistant_rename"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "upload"}, call("fileassistant_upload"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "install"}, call("fileassistant_install"), nil).leaf = true
+
+    entry({"admin", "system", "advanced", "guard_data"}, call("action_guard_data"), nil).leaf = true
+    entry({"admin", "system", "advanced", "guard_status"}, call("action_guard_status"), nil).leaf = true
 end
