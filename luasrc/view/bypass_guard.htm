@@ -3,93 +3,71 @@
 local uci = require "luci.model.uci".cursor()
 local sys = require "luci.sys" 
 local fs = require "nixio.fs"
-local file_is_enabled = (sys.call("grep -Fxq \"/etc/sysinfo\" \"/etc/profile\"") == 0)
-local state = file_is_enabled and "1" or "0"
-local status_text
-local status_color
-local hostname = uci:get("system", "@system[0]", "hostname") or "OpenWrt"
-local banner_content = ""
-local hndl_banner = io.open("/etc/banner", "r")
-if hndl_banner then
-    banner_content = hndl_banner:read("*a")
-    hndl_banner:close()
-end
-
-local prompt_line = string.format("root@%s:~# ", hostname)
-
-local sysinfo_stats = ""
-if fs.access("/etc/sysinfo") then
-    sysinfo_stats = sys.exec("/etc/sysinfo")
-else
-    sysinfo_stats = "Error: /etc/sysinfo script not found or not executable.\n"
-end
-
-local terminal_output_enabled = banner_content .. sysinfo_stats .. prompt_line
-local terminal_output_disabled = banner_content .. prompt_line
-
-local terminal_preview_content
-local button_html
-
-if state == "1" then
-    status_text  = translate("Enabled")
-    status_color = "Green"
-    terminal_preview_content = terminal_output_enabled
-    button_html = string.format([[
-        <input class="btn cbi-button cbi-button-negative" 
-            type="button" 
-            id="sysinfo_disable_btn"
-            onclick="toggleSysInfo('disable', 'sysinfo_disable_btn')"
-            value="%s" 
-            style="margin-right: 10px;" />
-    ]], translate("Click to disable"))
-else
-    status_text  = translate("Disabled")
-    status_color = "Red"
-    terminal_preview_content = terminal_output_disabled
-    button_html = string.format([[
-        <input class="btn cbi-button cbi-button-positive" 
-            type="button" 
-            id="sysinfo_enable_btn"
-            onclick="toggleSysInfo('enable', 'sysinfo_enable_btn')"
-            value="%s" 
-            style="margin-right: 10px;" />
-    ]], translate("Click to enable"))
-end
+local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
 %>
 
+<div class="cbi-section">
+    <h3><%=translate("Bypass Logic Traffic Statistics")%></h3>
+    <div class="cbi-section-descr"><%=translate("Real-time packet and byte counters from nftables bypass_logic chain.")%></div>
+    
+    <table class="cbi-section-table" id="bypass_status_table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-th"><%=translate("Traffic Type")%></th>
+            <th class="cbi-section-table-th"><%=translate("Packets")%></th>
+            <th class="cbi-section-table-th"><%=translate("Bytes")%></th>
+            <th class="cbi-section-table-th"><%=translate("Action / Comment")%></th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td colspan="4"><em><%=translate("Collecting data...")%></em></td>
+        </tr>
+    </table>
+</div>
+
 <script type="text/javascript">//<![CDATA[
-    function toggleSysInfo(action, btn_id) {
-        var btn = document.getElementById(btn_id);
-        var original_value = btn.value;
-        var new_state = (action === 'enable' ? 1 : 0);
-        btn.disabled = true;
-        btn.value = '<%:Applying...%>';
-        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "sysinfo")%>', { value: new_state }, function(x, data) {
-            btn.disabled = false;
-            if (data && data.code === 0) {
-                location.reload(); 
+    // 动态更新表格内容
+    XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "services", "advanced", "guard_data")%>', nil,
+        function(x, data) {
+            var tb = document.getElementById('bypass_status_table');
+            if (data && data.rules) {
+                // 清除除了标题以外的所有行
+                while (tb.rows.length > 1) tb.deleteRow(1);
+
+                for (var i = 0; i < data.rules.length; i++) {
+                    var r = data.rules[i];
+                    var tr = tb.insertRow(-1);
+                    tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+
+                    tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
+                    tr.insertCell(-1).innerHTML = r.packets;
+                    tr.insertCell(-1).innerHTML = r.bytes;
+                    tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
+                }
             } else {
-                btn.value = original_value; 
-                alert('<%:Failed to change status: %> ' + (data ? data.error : x.statusText));
+                while (tb.rows.length > 1) tb.deleteRow(1);
+                var tr = tb.insertRow(-1);
+                var td = tr.insertCell(-1);
+                td.colSpan = 4;
+                td.innerHTML = '<em><%:Service not running or no data available%></em>';
             }
+        }
+    );
+
+    function toggleBypass(action) {
+        var btn = document.getElementById('guard_btn');
+        btn.disabled = true;
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "advanced", "guard_status")%>', { set: action }, function(x, data) {
+            location.reload();
         });
     }
 //]]></script>
 
-<div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;">
-    <strong><%=translate("Terminal System Infomation")%>:</strong> <font color="<%=status_color%>"><strong><%=status_text%></strong></font>.
-    <div style="background-color: #222; padding: 10px; margin-top: 1rem; border-radius: 5px; max-width: 100%;">
-        <pre style="color: #eeeeee; font-family: 'Consolas', 'Monaco', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; font-size: 11px;">
-<%=terminal_preview_content%>
-        </pre>
-    </div>
-</div>
-
-<div class="cbi-value" style="padding-left: 3px; margin-top: 0.5rem;">
+<div class="cbi-value">
     <div class="cbi-value-field">
-        <div class="cbi-value-description">
-            <%=button_html%>
-        </div>
+        <% if is_running then %>
+            <input type="button" id="guard_btn" class="btn cbi-button cbi-button-negative" onclick="toggleBypass('disable')" value="<%=translate('Stop Bypass Guard')%>" />
+        <% else %>
+            <input type="button" id="guard_btn" class="btn cbi-button cbi-button-positive" onclick="toggleBypass('enable')" value="<%=translate('Start Bypass Guard')%>" />
+        <% end %>
     </div>
 </div>
 
