@@ -4,6 +4,7 @@ local uci = require "luci.model.uci".cursor()
 local sys = require "luci.sys" 
 local fs = require "nixio.fs"
 local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
+local has_natmap_conf = fs.access("/etc/config/natmap")
 %>
 
 <div class="cbi-section">
@@ -26,14 +27,18 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
 <div class="cbi-value">
     <label class="cbi-value-title"><%=translate("Natmap Integration")%></label>
     <div class="cbi-value-field">
-        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
-        <br />
-        <div class="cbi-value-description">
-            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
-                <%=translate("Update firewall rules automatically when Natmap port changes.")%>
-                <% if not is_running then %>(<%:Enable Bypass Guard first%>)<% end %>
-            </span>
-        </div>
+        <% if has_natmap_conf then %>
+            <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+            <br />
+            <div class="cbi-value-description">
+                <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+                    <%=translate("Update firewall rules automatically when Natmap port changes.")%>
+                    <% if not is_running then %>(<%:Enable Bypass Guard first%>)<% end %>
+                </span>
+            </div>
+        <% else %>
+            <em style="color: #999;"><%:Natmap config not found. Feature unavailable.%></em>
+        <% end %>
     </div>
 </div>
 
@@ -46,10 +51,12 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
             var ds = document.getElementById('natmap_desc');
 
             if (data && data.rules && data.rules.length > 0) {
-                // 服务正在运行：启用勾选框
-                cb.disabled = false;
-                ds.style.color = '#666';
-                ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%>';
+                // 如果勾选框存在且服务在运行，则解除禁用
+                if (cb) {
+                    cb.disabled = false;
+                    ds.style.color = '#666';
+                    ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%>';
+                }
 
                 while (tb.rows.length > 1) tb.deleteRow(1);
                 for (var i = 0; i < data.rules.length; i++) {
@@ -62,10 +69,12 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
                     tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
                 }
             } else {
-                // 服务已停止：禁用勾选框
-                cb.disabled = true;
-                ds.style.color = '#999';
-                ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%> (<%:Enable Bypass Guard first%>)';
+                // 如果服务停止，禁用勾选框
+                if (cb) {
+                    cb.disabled = true;
+                    ds.style.color = '#999';
+                    ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%> (<%:Enable Bypass Guard first%>)';
+                }
 
                 while (tb.rows.length > 1) tb.deleteRow(1);
                 var tr = tb.insertRow(-1);
@@ -77,11 +86,14 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
     );
 
     document.addEventListener("DOMContentLoaded", function() {
-        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', nil, function(x, data) {
-            if (data) {
-                document.getElementById('natmap_enable_cb').checked = (data.enable_natmap === '1');
-            }
-        });
+        var cb = document.getElementById('natmap_enable_cb');
+        if (cb) {
+            XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', nil, function(x, data) {
+                if (data) {
+                    cb.checked = (data.enable_natmap === '1');
+                }
+            });
+        }
     });
 
     function updateNatmapConfig(isChecked) {
