@@ -269,10 +269,12 @@ function action_guard_status()
     
     if set == "enable" then
         sys.exec("uci set advanced.global.enable_guard='1' && uci commit advanced")
+        sys.exec("/etc/init.d/bypass_guard enable")
         sys.exec("/etc/init.d/bypass_guard restart")
     elseif set == "disable" then
         sys.exec("uci set advanced.global.enable_guard='0' && uci commit advanced")
         sys.exec("/etc/init.d/bypass_guard stop")
+        sys.exec("/etc/init.d/bypass_guard disable")
     end
     
     luci.http.prepare_content("application/json")
