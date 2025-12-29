@@ -23,26 +23,50 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
     </table>
 </div>
 
+<div class="cbi-value">
+    <label class="cbi-value-title"><%=translate("Natmap Integration")%></label>
+    <div class="cbi-value-field">
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+        <br />
+        <div class="cbi-value-description">
+            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+                <%=translate("Update firewall rules automatically when Natmap port changes.")%>
+                <% if not is_running then %>(<%:Enable Bypass Guard first%>)<% end %>
+            </span>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">//<![CDATA[
-    // 动态更新表格内容
+    // 动态更新表格内容及勾选框可用状态
     XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', nil,
         function(x, data) {
             var tb = document.getElementById('bypass_status_table');
-            if (data && data.rules) {
-                // 清除除了标题以外的所有行
-                while (tb.rows.length > 1) tb.deleteRow(1);
+            var cb = document.getElementById('natmap_enable_cb');
+            var ds = document.getElementById('natmap_desc');
 
+            if (data && data.rules && data.rules.length > 0) {
+                // 服务正在运行：启用勾选框
+                cb.disabled = false;
+                ds.style.color = '#666';
+                ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%>';
+
+                while (tb.rows.length > 1) tb.deleteRow(1);
                 for (var i = 0; i < data.rules.length; i++) {
                     var r = data.rules[i];
                     var tr = tb.insertRow(-1);
                     tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
-
                     tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
                     tr.insertCell(-1).innerHTML = r.packets;
                     tr.insertCell(-1).innerHTML = r.bytes;
                     tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
                 }
             } else {
+                // 服务已停止：禁用勾选框
+                cb.disabled = true;
+                ds.style.color = '#999';
+                ds.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%> (<%:Enable Bypass Guard first%>)';
+
                 while (tb.rows.length > 1) tb.deleteRow(1);
                 var tr = tb.insertRow(-1);
                 var td = tr.insertCell(-1);
@@ -52,30 +76,7 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
         }
     );
 
-    function toggleBypass(action) {
-        var btn = document.getElementById('guard_btn');
-        btn.disabled = true;
-        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_status")%>', { set: action }, function(x, data) {
-            location.reload();
-        });
-    }
-//]]></script>
-
-<div class="cbi-value">
-    <label class="cbi-value-title"><%=translate("Natmap Integration")%></label>
-    <div class="cbi-value-field">
-        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
-        <br />
-        <div class="cbi-value-description">
-            <span class="d-block"><%=translate("Update firewall rules automatically when Natmap port changes.")%></span>
-        </div>
-    </div>
-</div>
-
-<script type="text/javascript">//<![CDATA[
-    // 初始化勾选框状态
     document.addEventListener("DOMContentLoaded", function() {
-        // 页面加载时从 Controller 获取一次配置状态
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', nil, function(x, data) {
             if (data) {
                 document.getElementById('natmap_enable_cb').checked = (data.enable_natmap === '1');
@@ -85,9 +86,17 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
 
     function updateNatmapConfig(isChecked) {
         var val = isChecked ? '1' : '0';
-        // 调用 Controller 异步保存配置，无需刷新页面
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
             if (!data || data.code !== 0) alert('Config Update Failed');
+        });
+    }
+
+    function toggleBypass(action) {
+        var btn = document.getElementById('guard_btn');
+        btn.disabled = true;
+        btn.value = '<%:Applying...%>';
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_status")%>', { set: action }, function(x, data) {
+            location.reload();
         });
     }
 //]]></script>
@@ -101,5 +110,4 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
         <% end %>
     </div>
 </div>
-
 <%+cbi/valuefooter%>
