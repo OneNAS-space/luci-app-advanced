@@ -53,8 +53,8 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
             var tb = document.getElementById('bypass_status_table');
             if (!tb) return;
 
-            while (tb.rows.length > 1) tb.deleteRow(1);
             if (data && data.rules && data.rules.length > 0) {
+                while (tb.rows.length > 1) tb.deleteRow(1);
                 for (var i = 0; i < data.rules.length; i++) {
                     var r = data.rules[i];
                     var tr = tb.insertRow(-1);
@@ -65,10 +65,11 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                     tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
                 }
             } else {
-            var tr = tb.insertRow(-1);
-            var td = tr.insertCell(-1);
-            td.colSpan = 4;
-            td.innerHTML = '<em><%:No traffic matched yet...%></em>';
+                while (tb.rows.length > 1) tb.deleteRow(1);
+                var tr = tb.insertRow(-1);
+                var td = tr.insertCell(-1);
+                td.colSpan = 4;
+                td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
             }
         }
     );
