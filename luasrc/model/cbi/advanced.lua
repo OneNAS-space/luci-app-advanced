@@ -20,14 +20,14 @@ local ts_view = s:taboption("sysinfo_tab", Value, "_sysinfo_view")
 ts_view.template = "sysinfo"
 
 local file_path_dnsmasq = "/etc/dnsmasq.conf"
-if nixio.fs.access(file_path_dnsmasq)then
+if nixio.fs.access(file_path_dnsmasq) then
 s:tab("dnsmasqconf",translate("Dnsmasq"),string.format(description_template, file_path_dnsmasq))
 conf=s:taboption("dnsmasqconf",Value,"dnsmasqconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_dnsmasq)or""
+return e.readfile(file_path_dnsmasq) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -44,14 +44,14 @@ end
 end
 
 local file_path_network = "/etc/config/network"
-if nixio.fs.access(file_path_network)then
+if nixio.fs.access(file_path_network) then
 s:tab("networkconf",translate("Network"),string.format(description_template, file_path_network))
 conf=s:taboption("networkconf",Value,"networkconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_network)or""
+return e.readfile(file_path_network) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -68,14 +68,14 @@ end
 end
 
 local file_path_wireless = "/etc/config/wireless"
-if nixio.fs.access(file_path_wireless)then
+if nixio.fs.access(file_path_wireless) then
 s:tab("wirelessconf",translate("Wireless"),string.format(description_template, file_path_wireless))
 conf=s:taboption("wirelessconf",Value,"wirelessconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_wireless)or""
+return e.readfile(file_path_wireless) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -92,14 +92,14 @@ end
 end
 
 local file_path_hosts = "/etc/hosts"
-if nixio.fs.access(file_path_hosts)then
+if nixio.fs.access(file_path_hosts) then
 s:tab("hostsconf",translate("Hosts"),string.format(description_template, file_path_hosts))
 conf=s:taboption("hostsconf",Value,"hostsconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_hosts)or""
+return e.readfile(file_path_hosts) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -116,14 +116,14 @@ end
 end
 
 local file_path_arpbind = "/etc/config/arpbind"
-if nixio.fs.access(file_path_arpbind)then
+if nixio.fs.access(file_path_arpbind) then
 s:tab("arpbindconf",translate("ARP binding"),string.format(description_template, file_path_arpbind))
 conf=s:taboption("arpbindconf",Value,"arpbindconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_arpbind)or""
+return e.readfile(file_path_arpbind) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -140,14 +140,14 @@ end
 end
 
 local file_path_firewall = "/etc/config/firewall"
-if nixio.fs.access(file_path_firewall)then
+if nixio.fs.access(file_path_firewall) then
 s:tab("firewallconf",translate("Firewall"),string.format(description_template, file_path_firewall))
 conf=s:taboption("firewallconf",Value,"firewallconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_firewall)or""
+return e.readfile(file_path_firewall) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -164,14 +164,14 @@ end
 end
 
 local file_path_mwan3 = "/etc/config/mwan3"
-if nixio.fs.access(file_path_mwan3)then
+if nixio.fs.access(file_path_mwan3) then
 s:tab("mwan3conf",translate("Load balancing"),string.format(description_template, file_path_mwan3))
 conf=s:taboption("mwan3conf",Value,"mwan3conf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_mwan3)or""
+return e.readfile(file_path_mwan3) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -188,14 +188,14 @@ end
 end
 
 local file_path_dhcp = "/etc/config/dhcp"
-if nixio.fs.access(file_path_dhcp)then
+if nixio.fs.access(file_path_dhcp) then
 s:tab("dhcpconf",translate("DHCP"),string.format(description_template, file_path_dhcp))
 conf=s:taboption("dhcpconf",Value,"dhcpconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_dhcp)or""
+return e.readfile(file_path_dhcp) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -212,14 +212,14 @@ end
 end
 
 local file_path_ddns = "/etc/config/ddns"
-if nixio.fs.access(file_path_ddns)then
+if nixio.fs.access(file_path_ddns) then
 s:tab("ddnsconf",translate("DDNS"),string.format(description_template, file_path_ddns))
 conf=s:taboption("ddnsconf",Value,"ddnsconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_ddns)or""
+return e.readfile(file_path_ddns) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -236,14 +236,14 @@ end
 end
 
 local file_path_parentcontrol = "/etc/config/parentcontrol"
-if nixio.fs.access(file_path_parentcontrol)then
+if nixio.fs.access(file_path_parentcontrol) then
 s:tab("parentcontrolconf",translate("Parental control"),string.format(description_template, file_path_parentcontrol))
 conf=s:taboption("parentcontrolconf",Value,"parentcontrolconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_parentcontrol)or""
+return e.readfile(file_path_parentcontrol) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -260,14 +260,14 @@ end
 end
 
 local file_path_autotimeset = "/etc/config/autotimeset"
-if nixio.fs.access(file_path_autotimeset)then
+if nixio.fs.access(file_path_autotimeset) then
 s:tab("autotimesetconf",translate("Timed setting"),string.format(description_template, file_path_autotimeset))
 conf=s:taboption("autotimesetconf",Value,"autotimesetconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_autotimeset)or""
+return e.readfile(file_path_autotimeset) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -284,14 +284,14 @@ end
 end
 
 local file_path_wolplus = "/etc/config/wolplus"
-if nixio.fs.access(file_path_wolplus)then
+if nixio.fs.access(file_path_wolplus) then
 s:tab("wolplusconf",translate("Wake-on-LAN"),string.format(description_template, file_path_wolplus))
 conf=s:taboption("wolplusconf",Value,"wolplusconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_wolplus)or""
+return e.readfile(file_path_wolplus) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -308,14 +308,14 @@ end
 end
 
 local file_path_smartdns = "/etc/config/smartdns"
-if nixio.fs.access(file_path_smartdns)then
+if nixio.fs.access(file_path_smartdns) then
 s:tab("smartdnsconf",translate("SMARTDNS"),string.format(description_template, file_path_smartdns))
 conf=s:taboption("smartdnsconf",Value,"smartdnsconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_smartdns)or""
+return e.readfile(file_path_smartdns) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -332,14 +332,14 @@ end
 end
 
 local file_path_bypass = "/etc/config/bypass"
-if nixio.fs.access(file_path_bypass)then
+if nixio.fs.access(file_path_bypass) then
 s:tab("bypassconf",translate("BYPASS"),string.format(description_template, file_path_bypass))
 conf=s:taboption("bypassconf",Value,"bypassconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_bypass)or""
+return e.readfile(file_path_bypass) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -356,14 +356,14 @@ end
 end
 
 local file_path_openclash = "/etc/config/openclash"
-if nixio.fs.access(file_path_openclash)then
+if nixio.fs.access(file_path_openclash) then
 s:tab("openclashconf",translate("openclash"),string.format(description_template, file_path_openclash))
 conf=s:taboption("openclashconf",Value,"openclashconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_openclash)or""
+return e.readfile(file_path_openclash) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -380,14 +380,14 @@ end
 end
 
 local file_path_agh = "/etc/AdGuardHome.yaml"
-if nixio.fs.access(file_path_agh)then
+if nixio.fs.access(file_path_agh) then
 s:tab("aghconf",translate("AdGuard Home"),string.format(description_template, file_path_agh))
 conf=s:taboption("aghconf",Value,"aghconf",nil,option_description)
 conf.template="cbi/tvalue"
 conf.rows=20
 conf.wrap="off"
 conf.cfgvalue=function(t,t)
-return e.readfile(file_path_agh)or""
+return e.readfile(file_path_agh) or ""
 end
 conf.write=function(a,a,t)
 if t then
@@ -403,7 +403,14 @@ end
 end
 end
 
-s:tab("filemanager", translate("File Assistant"),translate("Integrated upload, deletion and installation, non-professionals, please operate carefully."))
+local file_path_psw = "/etc/config/passwall2"
+if nixio.fs.access(file_path_psw) then
+s:tab("bypass_guard_tab", translate("PSW Bypass"), translate("Manage firewall bypass logic and Natmap integration."))
+local g_view = s:taboption("bypass_guard_tab", Value, "_bypass_guard_view")
+g_view.template = "bypass_guard"
+end
+
+s:tab("filemanager", translate("File Assistant"), translate("Integrated upload, deletion and installation, non-professionals, please operate carefully."))
 local fm_view = s:taboption("filemanager", Value, "_file_manager_view")
 fm_view.template = "fileassistant"
 
