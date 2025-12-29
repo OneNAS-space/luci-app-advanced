@@ -62,6 +62,37 @@ local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") 
 //]]></script>
 
 <div class="cbi-value">
+    <label class="cbi-value-title"><%=translate("Natmap Integration")%></label>
+    <div class="cbi-value-field">
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
+        <br />
+        <div class="cbi-value-description">
+            <span class="d-block"><%=translate("Update firewall rules automatically when Natmap port changes.")%></span>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">//<![CDATA[
+    // 初始化勾选框状态
+    document.addEventListener("DOMContentLoaded", function() {
+        // 页面加载时从 Controller 获取一次配置状态
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', nil, function(x, data) {
+            if (data) {
+                document.getElementById('natmap_enable_cb').checked = (data.enable_natmap === '1');
+            }
+        });
+    });
+
+    function updateNatmapConfig(isChecked) {
+        var val = isChecked ? '1' : '0';
+        // 调用 Controller 异步保存配置，无需刷新页面
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
+            if (!data || data.code !== 0) alert('Config Update Failed');
+        });
+    }
+//]]></script>
+
+<div class="cbi-value">
     <div class="cbi-value-field">
         <% if is_running then %>
             <input type="button" id="guard_btn" class="btn cbi-button cbi-button-negative" onclick="toggleBypass('disable')" value="<%=translate('Stop Bypass Guard')%>" />
