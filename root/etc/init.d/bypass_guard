@@ -7,6 +7,26 @@ SECTION="global"
 
 PSW_DEAD_FLAG="/tmp/psw_dead"
 
+remove_bypass_rules() {
+    local table="passwall2"
+    for chain in "mangle_prerouting" "dstnat"; do
+        local handles=$(nft -a list chain inet "$table" "$chain" 2>/dev/null | grep -E "Bypass-Global-Mark" | awk -F '# handle ' '{print $2}')
+        if [ -n "$handles" ]; then
+            for handle in $handles; do
+                nft delete rule inet "$table" "$chain" handle "$handle" 2>/dev/null
+            done
+        fi
+    done
+    logger -t bypass_guard "Cleaned up Bypass-Global-Mark rules from passwall2."
+}
+
+inject_bypass_rule() {
+    local table="passwall2"
+    local mark="0x000000ff"
+    local chain="$1"
+    nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "Bypass-Global-Mark"
+}
+
 setup_nft() {
     local is_broken=0
     [ -f "$PSW_DEAD_FLAG" ] && is_broken=1
@@ -54,18 +74,7 @@ setup_nft() {
 
     nft add rule inet bypass_logic prerouting iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
-    inject_bypass_rule() {
-        local table="passwall2"
-        local chain="$1"
-        local mark="0x000000ff"
-        local handles=$(nft -a list chain inet "$table" "$chain" 2>/dev/null | grep -E "Bypass-Global-Mark" | awk -F '# handle ' '{print $2}')
-        if [ -n "$handles" ]; then
-            for handle in $handles; do
-                nft delete rule inet "$table" "$chain" handle "$handle" 2>/dev/null
-            done
-        fi
-        nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "Bypass-Global-Mark"
-    }
+    remove_bypass_rules
 
     if [ "$psw_online" -eq 1 ]; then
         inject_bypass_rule "mangle_prerouting"
@@ -189,6 +198,7 @@ start_service() {
 }
 
 stop_service() {
+    remove_bypass_rules
     nft delete table inet bypass_logic 2>/dev/null
     rm -f "$PSW_DEAD_FLAG"
 }
