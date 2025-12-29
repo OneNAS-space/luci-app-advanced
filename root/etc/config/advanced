@@ -3,3 +3,7 @@ config advanced
 
 config sysinfo
     option enabled '0'
+
+config bypass_config 'global'
+    option enable_guard '0'
+    option enable_natmap '0'
