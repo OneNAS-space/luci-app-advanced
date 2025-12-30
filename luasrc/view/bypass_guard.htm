@@ -73,18 +73,24 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
         function(x, data) {
             var tb = document.getElementById('bypass_status_table');
-            if (!tb) return;
-
-            if (data && data.rules && data.rules.length > 0) {
-                while (tb.rows.length > 1) tb.deleteRow(1);
-                for (var i = 0; i < data.rules.length; i++) {
-                    var r = data.rules[i];
+            if (tb) {
+                if (data && data.rules && data.rules.length > 0) {
+                    while (tb.rows.length > 1) tb.deleteRow(1);
+                    for (var i = 0; i < data.rules.length; i++) {
+                        var r = data.rules[i];
+                        var tr = tb.insertRow(-1);
+                        tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+                        tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
+                        tr.insertCell(-1).innerHTML = r.packets;
+                        tr.insertCell(-1).innerHTML = r.bytes;
+                        tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
+                    }
+                } else {
+                    while (tb.rows.length > 1) tb.deleteRow(1);
                     var tr = tb.insertRow(-1);
-                    tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
-                    tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
-                    tr.insertCell(-1).innerHTML = r.packets;
-                    tr.insertCell(-1).innerHTML = r.bytes;
-                    tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
+                    var td = tr.insertCell(-1);
+                    td.colSpan = 4;
+                    td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
                 }
             }
 
@@ -107,11 +113,11 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.insertCell(-1).innerHTML = roleHtml;
                     }
                 } else {
-                    while (tb.rows.length > 1) tb.deleteRow(1);
-                    var tr = tb.insertRow(-1);
+                    while (tc.rows.length > 1) tc.deleteRow(1);
+                    var tr = tc.insertRow(-1);
                     var td = tr.insertCell(-1);
                     td.colSpan = 4;
-                    td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
+                    td.innerHTML = '<em><%:No redirection clients found in NFT sets.%></em>';
                 }
             }
         }
