@@ -20,7 +20,7 @@ define Package/$(PKG_NAME)
 	PKGARCH:=all
 endef
 
-define Package/advanced/conffiles
+define Package/$(PKG_NAME)/conffiles
 /etc/config/advanced
 endef
 
