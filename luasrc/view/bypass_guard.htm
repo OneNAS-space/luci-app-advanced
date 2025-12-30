@@ -46,6 +46,28 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 </div>
 <% end %>
 
+<div class="cbi-section">
+    <h3><%=translate("Redirection Clients")%></h3>
+    <div class="cbi-section-descr"><%=translate("Active hosts currently managed by Bypass Guard (Synchronized from DHCP tags and Neighbors).")%></div>
+    
+    <table class="cbi-section-table" id="clients_table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-th"><%=translate("Hostname")%></th>
+            <th class="cbi-section-table-th"><%=translate("IP Address")%></th>
+            <th class="cbi-section-table-th"><%=translate("Type")%></th>
+            <th class="cbi-section-table-th"><%=translate("Role")%></th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td colspan="4"><em><%=translate("Fetching client list...")%></em></td>
+        </tr>
+    </table>
+</div>
+
+<style>
+    .label { font-weight: bold; font-size: 0.9em; }
+    #clients_table code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+</style>
+
 <script type="text/javascript">//<![CDATA[
     <% if is_running then %>
     XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
@@ -64,12 +86,33 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                     tr.insertCell(-1).innerHTML = r.bytes;
                     tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
                 }
-            } else {
-                while (tb.rows.length > 1) tb.deleteRow(1);
-                var tr = tb.insertRow(-1);
-                var td = tr.insertCell(-1);
-                td.colSpan = 4;
-                td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
+            }
+
+            var tc = document.getElementById('clients_table');
+            if (tc) {
+                if (data && data.clients && data.clients.length > 0) {
+                    while (tc.rows.length > 1) tc.deleteRow(1);
+                    for (var i = 0; i < data.clients.length; i++) {
+                        var c = data.clients[i];
+                        var tr = tc.insertRow(-1);
+                        tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+                        tr.insertCell(-1).innerHTML = c.hostname ? '<strong>' + c.hostname + '</strong>' : '<em>unknown</em>';
+                        var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
+                        tr.insertCell(-1).innerHTML = '<code ' + ipStyle + '>' + c.ip + '</code>';
+                        tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
+                        var roleHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 4px; border-radius:3px;">VPN</span>';
+                        if (c.is_server) {
+                            roleHtml += ' <span class="label" style="background-color:#0069d6; color:white; padding:2px 4px; border-radius:3px; margin-left:4px;">Server</span>';
+                        }
+                        tr.insertCell(-1).innerHTML = roleHtml;
+                    }
+                } else {
+                    while (tb.rows.length > 1) tb.deleteRow(1);
+                    var tr = tb.insertRow(-1);
+                    var td = tr.insertCell(-1);
+                    td.colSpan = 4;
+                    td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
+                }
             }
         }
     );
