@@ -84,9 +84,9 @@ setup_nft() {
     if [ "$is_broken" -eq 0 ] && [ "$psw_online" -eq 1 ]; then
         nft add rule inet bypass_logic prerouting ip saddr @psw_vpn_clients counter meta mark set 0 accept comment "AGENT-PASS"
         nft add rule inet bypass_logic prerouting ip6 saddr @psw_vpn_clients6 counter meta mark set 0 accept comment "AGENT-PASS-V6"
-        logger -t bypass_guard "Mode: PROXY - Redirecting VPN clients to PassWall2."
+        logger -t bypass_guard "🚀 Mode: [PROXY] - Redirecting VPN clients to PassWall2 ✅"
     else
-        logger -t bypass_guard "Mode: BYPASS - PassWall2 is unavailable."
+        logger -t bypass_guard "🛡️ Mode: [BYPASS] - PassWall2 is unavailable ⚠️"
     fi
 
     nft add rule inet bypass_logic prerouting iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
@@ -96,7 +96,7 @@ setup_nft() {
         local success=0
         inject_bypass_rule "mangle_prerouting" && success=$((success + 1))
         inject_bypass_rule "dstnat" && success=$((success + 1))
-        [ "$success" -eq 2 ] && logger -t bypass_guard "Successfully injected all bypass rules into PassWall2."
+        [ "$success" -eq 2 ] && logger -t bypass_guard "💉 Successfully injected all bypass rules into PassWall2 💥"
     else
         return 0
     fi
