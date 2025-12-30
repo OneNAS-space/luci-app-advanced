@@ -5,18 +5,36 @@ require "nixio.fs"
 local nixio = require "nixio"
 local u = require "luci.util"
 
+function action_get_config()
+    local uci = require "luci.model.uci".cursor()
+    local conf = uci:get_all("advanced", "global") or {}
+    local rv = {
+        enabled        = conf.enabled or "0",
+        enable_sysinfo = conf.enable_sysinfo or "0",
+        enable_bypass  = conf.enable_bypass or "0",
+        enable_natmap  = conf.enable_natmap or "0"
+    }
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(rv)
+end
+
 function advanced_sysinfo(value)
+    local is_enable = (luci.http.formvalue("value") == "1")
+    local uci = require "luci.model.uci".cursor()
+    uci:set("advanced", "global", "enable_sysinfo", is_enable and "1" or "0")
+    uci:commit("advanced")
+
     luci.http.header("Content-Type", "application/json")
     
     local PROFILE_PATH = "/etc/profile"
     local SYSINFO_LINE = "/etc/sysinfo"
-    local is_enable = (luci.http.formvalue("value") == "1")
 
     if not nixio.fs.access(PROFILE_PATH) then
         luci.http.write('{ "code": 1, "error": "Profile file not found." }')
         return
     end
 
+    
     local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
     luci.sys.exec(delete_cmd)
     
@@ -324,26 +342,17 @@ function action_guard_status()
     local sys = require "luci.sys"
     
     if set == "enable" then
-        sys.exec("uci set advanced.global.enable_guard='1' && uci commit advanced")
+        sys.exec("uci set advanced.global.enable_bypass='1' && uci commit advanced")
         sys.exec("/etc/init.d/bypass_guard enable")
         sys.exec("/etc/init.d/bypass_guard start")
     elseif set == "disable" then
-        sys.exec("uci set advanced.global.enable_guard='0' && uci commit advanced")
+        sys.exec("uci set advanced.global.enable_bypass='0' && uci commit advanced")
         sys.exec("/etc/init.d/bypass_guard stop")
         sys.exec("/etc/init.d/bypass_guard disable")
     end
     
     luci.http.prepare_content("application/json")
     luci.http.write_json({ code = 0 })
-end
-
-function action_get_config()
-    local uci = require "luci.model.uci".cursor()
-    local rv = {
-        enable_natmap = uci:get("advanced", "global", "enable_natmap") or "0"
-    }
-    luci.http.prepare_content("application/json")
-    luci.http.write_json(rv)
 end
 
 -- 异步设置 Natmap 开关
