@@ -20,6 +20,10 @@ define Package/$(PKG_NAME)
 	PKGARCH:=all
 endef
 
+define Package/advanced/conffiles
+/etc/config/advanced
+endef
+
 define Build/Compile
 endef
 
@@ -54,6 +58,15 @@ define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
 	/etc/init.d/rpcd reload
+fi
+exit 0
+endef
+
+define Package/$(PKG_NAME)/prerm
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+    /etc/init.d/bypass_guard stop
+    /etc/init.d/bypass_guard disable
 fi
 exit 0
 endef
