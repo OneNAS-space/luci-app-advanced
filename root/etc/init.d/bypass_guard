@@ -85,7 +85,8 @@ setup_nft() {
 
     remove_bypass_rules
 
-    if [ "$psw_online" -eq 1 ]; then
+    if nft list table inet passwall2 >/dev/null 2>&1; then
+        local success=0
         inject_bypass_rule "mangle_prerouting" && success=$((success + 1))
         inject_bypass_rule "dstnat" && success=$((success + 1))
         [ "$success" -eq 2 ] && logger -t bypass_guard "Successfully injected all bypass rules into PassWall2."
