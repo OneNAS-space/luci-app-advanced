@@ -46,6 +46,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 </div>
 <% end %>
 
+<% if is_running then %>
 <div class="cbi-section">
     <h3><%=translate("Redirection Clients")%></h3>
     <div class="cbi-section-descr"><%=translate("Active hosts currently managed by Bypass Guard (Synchronized from DHCP tags and Neighbors).")%></div>
@@ -62,6 +63,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
         </tr>
     </table>
 </div>
+<% end %>
 
 <style>
     .label { font-weight: bold; font-size: 0.9em; }
