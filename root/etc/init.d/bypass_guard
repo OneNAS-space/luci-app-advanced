@@ -177,7 +177,7 @@ refresh_nft() {
 start_service() {
     local enabled
     config_load "$CONF"
-    config_get_bool enabled "$SECTION" "enable_guard" 0
+    config_get_bool enabled "$SECTION" "enable_bypass" 0
 
     if [ "$enabled" -eq 0 ]; then
         logger -t bypass_guard "Service disabled in config. Exiting."
