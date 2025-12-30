@@ -2,7 +2,7 @@
 
 if ! uci get advanced.global >/dev/null 2>&1; then
     uci set advanced.global=advanced
-    uci set advanced.global.enabled='0'
+    uci set advanced.global.enabled='1'
     uci set advanced.global.enable_sysinfo='0'
     uci set advanced.global.enable_bypass='0'
     uci set advanced.global.enable_natmap='0'
@@ -13,4 +13,5 @@ fi
 uci delete advanced.@sysinfo[0] 2>/dev/null
 uci commit advanced
 
+/etc/init.d/rpcd reload
 exit 0
