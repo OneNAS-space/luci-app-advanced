@@ -8,7 +8,7 @@ include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
 PKG_VERSION:=2.3.0
-PKG_RELEASE:=20251230
+PKG_RELEASE:=20251231
 PKG_BUILD_DEPENDS:=luci-base/host
 
 define Package/$(PKG_NAME)
@@ -53,7 +53,6 @@ endef
 define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/bypass_guard enable
 	/etc/init.d/rpcd reload
 fi
 exit 0
