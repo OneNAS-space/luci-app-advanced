@@ -306,22 +306,25 @@ function action_guard_data()
         local elements = raw_set:match("elements = { (.-) }")
         if elements then
             for single_ip in elements:gmatch("([^, %s]+)") do
-                single_ip = single_ip:gsub("[;,]", "")
-                local found = false
-                for _, existing in ipairs(rv.clients) do
-                    if existing.ip == single_ip then
-                        if is_server_group then existing.is_server = true end
-                        found = true
-                        break
+                if (single_ip:match("%d+%.%d+") or single_ip:find(":")) 
+                    and not single_ip:find("timeout") 
+                    and not single_ip:find("expires") then
+                    local found = false
+                    for _, existing in ipairs(rv.clients) do
+                        if existing.ip == single_ip then
+                            if is_server_group then existing.is_server = true end
+                            found = true
+                            break
+                        end
                     end
-                end
 
-                if not found then
-                    table.insert(rv.clients, {
-                        ip        = single_ip,
-                        hostname  = find_hostname(single_ip) or "Configured-Device",
-                        is_server = is_server_group
-                    })
+                    if not found then
+                        table.insert(rv.clients, {
+                            ip        = single_ip,
+                            hostname  = find_hostname(single_ip) or "Configured-Device",
+                            is_server = is_server_group
+                        })
+                    end
                 end
             end
         end
