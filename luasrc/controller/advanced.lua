@@ -267,49 +267,46 @@ function action_guard_data()
     local uci = require "luci.model.uci".cursor()
     local rv = { rules = {}, clients = {} }
 
-    local raw = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null")
-    for packets, bytes, comment in raw:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+    local raw_nft = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null") or ""
+    for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
         table.insert(rv.rules, {
             name    = comment,
             packets = packets,
-            bytes   = format_bytes(bytes),
+            bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
             comment = "Matched"
         })
     end
 
-    local ip_map = {}
     local name_map = {}
-    local hostid_map = {}
     uci:foreach("dhcp", "host", function(s)
-        if s.name then
-            if s.ip then ip_map[s.ip] = s.name end
-            if s.hostid then hostid_map[s.hostid:gsub("^:", "")] = s.name end
-            if s.mac then
-                for m in s.mac:gmatch("%S+") do
-                    mac_map[m:lower()] = s.name
-                end
-            end
+        if s.name and s.ip then
+            name_map[s.ip] = s.name
         end
     end)
 
     local function find_hostname(ip)
-        if ip_map[ip] then return ip_map[ip] end
+        if not ip then return nil end
+        if name_map[ip] then return name_map[ip] end
         if ip:find(":") then
-            local current_hid = ip:match(":([^:]+)$")
-            if current_hid and hostid_map[current_hid] then
-                return hostid_map[current_hid]
+            local neigh_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+            local mac = neigh_out:gsub("\n", "")
+            if mac and mac ~= "" then
+                local n = nil
+                uci:foreach("dhcp", "host", function(s)
+                    if s.mac and s.mac:lower() == mac:lower() then n = s.name end
+                end)
+                return n
             end
-            local mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("\n", ""):lower()
-            if mac_map[mac] then return mac_map[mac] end
         end
         return nil
     end
     
     local function fetch_clients(set_name, is_server_group)
-        local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name))
+        local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name)) or ""
         local elements = raw_set:match("elements = { (.-) }")
         if elements then
             for single_ip in elements:gmatch("([^, %s]+)") do
+                single_ip = single_ip:gsub("[;,]", "")
                 local found = false
                 for _, existing in ipairs(rv.clients) do
                     if existing.ip == single_ip then
