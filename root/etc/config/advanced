@@ -1,5 +1,5 @@
 config advanced 'global'
-    option enabled '0'
+    option enabled '1'
     option enable_sysinfo '0'
     option enable_bypass '0'
     option enable_natmap '0'
