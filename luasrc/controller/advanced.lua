@@ -247,9 +247,10 @@ end
 
 function action_guard_data()
     local sys = require "luci.sys"
-    local rv = { rules = {} }
-    local raw = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null")
+    local uci = require "luci.model.uci".cursor()
+    local rv = { rules = {}, clients = {} }
 
+    local raw = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null")
     for packets, bytes, comment in raw:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
         table.insert(rv.rules, {
             name    = comment,
@@ -258,6 +259,61 @@ function action_guard_data()
             comment = "Matched"
         })
     end
+
+    local name_map = {}
+    uci:foreach("dhcp", "host", function(s)
+        if s.name then
+            if s.ip then name_map[s.ip] = s.name end
+            if s.hostid then
+            end
+        end
+    end)
+
+    local function find_hostname(ip)
+        if name_map[ip] then return name_map[ip] end
+
+        if ip:find(":") then
+            local mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("\n", "")
+            if mac and mac ~= "" then
+                local n = nil
+                uci:foreach("dhcp", "host", function(s)
+                    if s.mac and s.mac:lower() == mac:lower() then n = s.name end
+                end)
+                return n
+            end
+        end
+        return nil
+    end
+    
+    local function fetch_clients(set_name, is_server_group)
+        local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name))
+        local elements = raw_set:match("elements = { (.-) }")
+        if elements then
+            for single_ip in elements:gmatch("([^, %s]+)") do
+                local found = false
+                for _, existing in ipairs(rv.clients) do
+                    if existing.ip == single_ip then
+                        if is_server_group then existing.is_server = true end
+                        found = true
+                        break
+                    end
+                end
+
+                if not found then
+                    table.insert(rv.clients, {
+                        ip        = single_ip,
+                        hostname  = find_hostname(single_ip) or "Configured-Device",
+                        is_server = is_server_group
+                    })
+                end
+            end
+        end
+    end
+
+    fetch_clients("psw_vpn_clients", false)
+    fetch_clients("psw_vpn_clients6", false)
+    fetch_clients("quic_direct_clients", true)
+    fetch_clients("quic_direct_clients6", true)
 
     luci.http.prepare_content("application/json")
     luci.http.write_json(rv)
