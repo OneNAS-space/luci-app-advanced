@@ -279,6 +279,7 @@ function action_guard_data()
 
     local ip_map = {}
     local name_map = {}
+    local hostid_map = {}
     uci:foreach("dhcp", "host", function(s)
         if s.name then
             if s.ip then ip_map[s.ip] = s.name end
