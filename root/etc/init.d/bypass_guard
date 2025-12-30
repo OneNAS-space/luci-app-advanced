@@ -6,25 +6,34 @@ CONF="advanced"
 SECTION="global"
 
 PSW_DEAD_FLAG="/tmp/psw_dead"
-
 remove_bypass_rules() {
     local table="passwall2"
+    nft list table inet "$table" >/dev/null 2>&1 || return 0
+    local cleaned=0
     for chain in "mangle_prerouting" "dstnat"; do
+        nft list chain inet "$table" "$chain" >/dev/null 2>&1 || continue
         local handles=$(nft -a list chain inet "$table" "$chain" 2>/dev/null | grep -E "Bypass-Global-Mark" | awk -F '# handle ' '{print $2}')
         if [ -n "$handles" ]; then
             for handle in $handles; do
                 nft delete rule inet "$table" "$chain" handle "$handle" 2>/dev/null
+                cleaned=$((cleaned + 1))
             done
         fi
     done
-    logger -t bypass_guard "Cleaned up Bypass-Global-Mark rules from passwall2."
+    [ "$cleaned" -gt 0 ] && logger -t bypass_guard "Cleaned up $cleaned residual rules from passwall2."
 }
 
 inject_bypass_rule() {
     local table="passwall2"
     local mark="0x000000ff"
     local chain="$1"
-    nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "Bypass-Global-Mark"
+    if nft list chain inet "$table" "$chain" >/dev/null 2>&1; then
+        nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "Bypass-Global-Mark"
+        return 0
+    else
+        logger -t bypass_guard "Skip injecting: chain $chain in table $table not found."
+        return 1
+    fi
 }
 
 setup_nft() {
@@ -77,9 +86,9 @@ setup_nft() {
     remove_bypass_rules
 
     if [ "$psw_online" -eq 1 ]; then
-        inject_bypass_rule "mangle_prerouting"
-        inject_bypass_rule "dstnat"
-        logger -t bypass_guard "Injected bypass rules into PassWall2."
+        inject_bypass_rule "mangle_prerouting" && success=$((success + 1))
+        inject_bypass_rule "dstnat" && success=$((success + 1))
+        [ "$success" -eq 2 ] && logger -t bypass_guard "Successfully injected all bypass rules into PassWall2."
     else
         logger -t bypass_guard "Warning: PassWall2 table not found, skipping injection."
     fi
