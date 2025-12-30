@@ -4,8 +4,8 @@ START=90
 EXTRA_COMMANDS="refresh_nft"
 CONF="advanced"
 SECTION="global"
-
 PSW_DEAD_FLAG="/tmp/psw_dead"
+
 remove_bypass_rules() {
     local table="passwall2"
     nft list table inet "$table" >/dev/null 2>&1 || return 0
