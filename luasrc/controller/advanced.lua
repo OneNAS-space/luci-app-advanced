@@ -285,18 +285,27 @@ function action_guard_data()
     end)
 
     local function find_hostname(ip)
-        if not ip then return nil end
+        if not ip or ip == "" then return nil end
         if name_map[ip] then return name_map[ip] end
+        local mac = ""
         if ip:find(":") then
-            local neigh_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
-            local mac = neigh_out:gsub("\n", "")
-            if mac and mac ~= "" then
-                local n = nil
-                uci:foreach("dhcp", "host", function(s)
-                    if s.mac and s.mac:lower() == mac:lower() then n = s.name end
-                end)
-                return n
-            end
+            mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("[%s\n]", ""):lower()
+        else
+            mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("[%s\n]", ""):lower()
+        end
+        if mac and mac ~= "" then
+            local n = nil
+            uci:foreach("dhcp", "host", function(s)
+                if s.name and s.mac then
+                    for m in s.mac:gmatch("([^%s,]+)") do
+                        if m:lower() == mac then
+                            n = s.name
+                            return false
+                        end
+                    end
+                end
+            end)
+            return n
         end
         return nil
     end
