@@ -24,17 +24,16 @@ function advanced_sysinfo(value)
     uci:set("advanced", "global", "enable_sysinfo", is_enable and "1" or "0")
     uci:commit("advanced")
 
-    luci.http.header("Content-Type", "application/json")
+    luci.http.prepare_content("application/json")
     
     local PROFILE_PATH = "/etc/profile"
     local SYSINFO_LINE = "/etc/sysinfo"
 
     if not nixio.fs.access(PROFILE_PATH) then
-        luci.http.write('{ "code": 1, "error": "Profile file not found." }')
+        luci.http.write_json({ code = 1, error = "Profile file not found." })
         return
     end
 
-    
     local delete_cmd = string.format("sed -i '/\\/etc\\/sysinfo/d' %q; sed -i '/^$/d' %q", PROFILE_PATH, PROFILE_PATH)
     luci.sys.exec(delete_cmd)
     
@@ -47,7 +46,7 @@ function advanced_sysinfo(value)
         luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
     end
 
-    luci.http.write('{ "code": 0, "status": "%s" }' % (is_enable and "enabled" or "disabled"))
+    luci.http.write_json({ code = 0, status = is_enable and "enabled" or "disabled" })
 end
 
 function list_response(path, success)
@@ -278,27 +277,29 @@ function action_guard_data()
         })
     end
 
+    local ip_map = {}
     local name_map = {}
     uci:foreach("dhcp", "host", function(s)
         if s.name then
-            if s.ip then name_map[s.ip] = s.name end
-            if s.hostid then
+            if s.ip then ip_map[s.ip] = s.name end
+            if s.hostid then hostid_map[s.hostid:gsub("^:", "")] = s.name end
+            if s.mac then
+                for m in s.mac:gmatch("%S+") do
+                    mac_map[m:lower()] = s.name
+                end
             end
         end
     end)
 
     local function find_hostname(ip)
-        if name_map[ip] then return name_map[ip] end
-
+        if ip_map[ip] then return ip_map[ip] end
         if ip:find(":") then
-            local mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("\n", "")
-            if mac and mac ~= "" then
-                local n = nil
-                uci:foreach("dhcp", "host", function(s)
-                    if s.mac and s.mac:lower() == mac:lower() then n = s.name end
-                end)
-                return n
+            local current_hid = ip:match(":([^:]+)$")
+            if current_hid and hostid_map[current_hid] then
+                return hostid_map[current_hid]
             end
+            local mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("\n", ""):lower()
+            if mac_map[mac] then return mac_map[mac] end
         end
         return nil
     end
