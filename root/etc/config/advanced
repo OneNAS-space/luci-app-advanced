@@ -1,9 +1,5 @@
-config advanced
-    option enabled '1'
-
-config sysinfo 'sysinfo'
+config advanced 'global'
     option enabled '0'
-
-config bypass_config 'global'
-    option enable_guard '0'
+    option enable_sysinfo '0'
+    option enable_bypass '0'
     option enable_natmap '0'
