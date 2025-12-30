@@ -27,13 +27,16 @@ inject_bypass_rule() {
     local table="passwall2"
     local mark="0x000000ff"
     local chain="$1"
-    if nft list chain inet "$table" "$chain" >/dev/null 2>&1; then
-        nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "Bypass-Global-Mark"
-        return 0
-    else
-        logger -t bypass_guard "Skip injecting: chain $chain in table $table not found."
-        return 1
-    fi
+    local comment="Bypass-Global-Mark"
+    local retries=3
+    while [ $retries -gt 0 ]; do
+        if nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "$comment" 2>/dev/null; then
+            return 0
+        fi
+        retries=$((retries - 1))
+        [ $retries -gt 0 ] && sleep 0.2
+    done
+    return 1
 }
 
 setup_nft() {
@@ -83,9 +86,9 @@ setup_nft() {
 
     nft add rule inet bypass_logic prerouting iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
-    remove_bypass_rules
-
     if nft list table inet passwall2 >/dev/null 2>&1; then
+        sleep 0.5
+        remove_bypass_rules
         local success=0
         inject_bypass_rule "mangle_prerouting" && success=$((success + 1))
         inject_bypass_rule "dstnat" && success=$((success + 1))
