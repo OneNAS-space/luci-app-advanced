@@ -196,14 +196,14 @@ start_service() {
             if curl -sk --retry 1 --connect-timeout 2 -I https://www.google.com -o /dev/null; then
                 if [ -f "/tmp/psw_dead" ]; then
                     rm -f "/tmp/psw_dead"
-                    /etc/init.d/bypass_guard refresh_nft
+                    /etc/init.d/bypass_guard reload
                 fi
                 fail_cnt=0
             else
                 fail_cnt=$((fail_cnt + 1))
                 if [ "$fail_cnt" -ge 3 ] && [ ! -f "/tmp/psw_dead" ]; then
                     touch "/tmp/psw_dead"
-                    /etc/init.d/bypass_guard refresh_nft
+                    /etc/init.d/bypass_guard reload
                 fi
             fi
             sleep 3
