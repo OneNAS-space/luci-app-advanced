@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if ! uci get advanced.global >/dev/null 2>&1; then
+    uci set advanced.global=advanced
+    uci set advanced.global.enabled='0'
+    uci set advanced.global.enable_sysinfo='0'
+    uci set advanced.global.enable_bypass='0'
+    uci set advanced.global.enable_natmap='0'
+    uci commit advanced
+fi
+
+# 可选：清理旧的匿名小节（防止配置混乱）
+uci delete advanced.@sysinfo[0] 2>/dev/null
+uci commit advanced
+
+exit 0
