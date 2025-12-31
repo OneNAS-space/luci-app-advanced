@@ -296,10 +296,22 @@ function action_guard_data()
         end
     end)
 
-    local neigh_map = {}
-    local raw_neigh = sys.exec("ip neigh show") or ""
-    for ip, mac in raw_neigh:gmatch("([%d%.%a:]+)%s+dev%s+[^%s]+%s+lladdr%s+([%a%d:]+)") do
-        neigh_map[ip] = mac:lower()
+    local function find_hostname(ip)
+        if not ip then return nil, nil end
+        if ip_map[ip] then 
+            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+            local mac = mac_out:gsub("[%s\n]", ""):lower()
+            return ip_map[ip], mac 
+        end
+        if ip:find(":") or ip:match("%d+%.%d+%.%d+%.%d+") then
+            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+            local mac = mac_out:gsub("[%s\n]", ""):lower()
+            if mac ~= "" and mac_map[mac] then
+                return mac_map[mac], mac
+            end
+            return nil, mac
+        end
+        return nil, nil
     end
 
     local function fetch_clients(set_name, is_server_group)
@@ -307,7 +319,6 @@ function action_guard_data()
         local elements = raw_set:match("elements = { (.-) }")
         if elements then
             for single_ip in elements:gmatch("([^, %s]+)") do
-                single_ip = single_ip:gsub("[;,]", "")
                 if (single_ip:match("%d+%.%d+") or single_ip:find(":")) 
                     and not single_ip:find("timeout") 
                     and not single_ip:find("expires") then
@@ -321,15 +332,11 @@ function action_guard_data()
                     end
 
                     if not found then
-                        local current_mac = neigh_map[single_ip] or ""
-                        local final_name = ip_map[single_ip]
-                        if not final_name and current_mac ~= "" and mac_map[current_mac] then
-                            final_name = mac_map[current_mac]
-                        end
+                        local name, mac = find_hostname(single_ip)
                         table.insert(rv.clients, {
                             ip        = single_ip,
-                            mac       = (current_mac ~= "" and current_mac ~= "failed") and current_mac:upper() or "—",
-                            hostname  = find_hostname(single_ip) or "Configured-Device",
+                            mac       = (mac and mac ~= "") and mac:upper() or "—",
+                            hostname  = name or "Configured-Device",
                             is_server = is_server_group
                         })
                     end
