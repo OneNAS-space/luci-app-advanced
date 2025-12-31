@@ -295,20 +295,7 @@ function action_guard_data()
             end
         end
     end)
-    
-    local function find_hostname(ip)
-        if not ip or ip == "" then return nil end
-        if ip_map[ip] then return ip_map[ip] end
-        if ip:find(":") or ip:match("%d+%.%d+%.%d+%.%d+") then
-            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
-            local mac = mac_out:gsub("[%s\n]", ""):lower()
-            if mac ~= "" and mac_map[mac] then
-                return mac_map[mac]
-            end
-        end
-        return nil
-    end
-    
+
     local function fetch_clients(set_name, is_server_group)
         local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name)) or ""
         local elements = raw_set:match("elements = { (.-) }")
@@ -327,8 +314,16 @@ function action_guard_data()
                     end
 
                     if not found then
+                        local current_mac = ""
+                        local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", single_ip)) or ""
+                        current_mac = mac_out:gsub("[%s\n]", ""):lower()
+                        local final_name = ip_map[single_ip] -- 先试 IP
+                        if not final_name and current_mac ~= "" and mac_map[current_mac] then
+                            final_name = mac_map[current_mac] -- 再试 MAC
+                        end
                         table.insert(rv.clients, {
                             ip        = single_ip,
+                            mac       = (current_mac ~= "" and current_mac ~= "failed") and current_mac:upper() or "—",
                             hostname  = find_hostname(single_ip) or "Configured-Device",
                             is_server = is_server_group
                         })
