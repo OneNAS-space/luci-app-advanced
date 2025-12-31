@@ -3,7 +3,9 @@
 local uci = require "luci.model.uci".cursor()
 local sys = require "luci.sys" 
 local fs = require "nixio.fs"
-local is_running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
+local uci_enabled = (uci:get("advanced", "global", "enable_bypass") == "1")
+local nft_running = (sys.call("nft list chain inet bypass_logic prerouting >/dev/null 2>&1") == 0)
+local is_running = (uci_enabled and nft_running)
 local has_natmap_conf = fs.access("/etc/config/natmap")
 %>
 
