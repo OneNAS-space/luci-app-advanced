@@ -123,7 +123,7 @@ msgid "Bytes"
 msgstr "流量"
 
 msgid "Action / Comment"
-msgstr ""
+msgstr "分类说明"
 
 msgid "Collecting data..."
 msgstr "收集数据 ..."
@@ -133,6 +133,30 @@ msgstr "Natmap集成"
 
 msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap端口更改时自动更新防火墙规则。"
+
+msgid "Direct / BitTorrent"
+msgstr "直连 / BitTorrent 流量"
+
+msgid "Direct / Cloudflare Tunnel"
+msgstr "直连 / Cloudflare 隧道"
+
+msgid "Direct / Bypass"
+msgstr "直连 / 常规绕过"
+
+msgid "Direct / Global Whitelist"
+msgstr "直连 / 全局白名单"
+
+msgid "Proxy / Agent Redirect"
+msgstr "代理 / 插件重定向"
+
+msgid "System / Router Self-Agent Redirect"
+msgstr "系统 / 路由器自身代理"
+
+msgid "System / Loopback Bypass"
+msgstr "系统 / 回环流量绕过"
+
+msgid "System / Routing Fix"
+msgstr "系统 / 路由路径修正"
 
 msgid "VPN Clients"
 msgstr "VPN 客户端"
