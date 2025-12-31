@@ -109,3 +109,66 @@ msgstr "点击按钮开启"
 
 msgid "Terminal System Infomation"
 msgstr "终端系统信息"
+
+msgid "Bypass Logic Traffic Statistics"
+msgstr "旁路逻辑流量统计"
+
+msgid "Traffic Type"
+msgstr "类型"
+
+msgid "Packets"
+msgstr "数据包"
+
+msgid "Bytes"
+msgstr "流量"
+
+msgid "Action / Comment"
+msgstr ""
+
+msgid "Collecting data..."
+msgstr "收集数据 ..."
+
+msgid "Natmap Integration"
+msgstr "Natmap集成"
+
+msgid "Update firewall rules automatically when Natmap port changes."
+msgstr "Natmap端口更改时自动更新防火墙规则。"
+
+msgid "VPN Clients"
+msgstr "VPN 客户端"
+
+msgid "Hostname"
+msgstr "主机名"
+
+msgid "MAC Address"
+msgstr "MAC 地址"
+
+msgid "IP Address"
+msgstr "IP 地址"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Tag"
+msgstr "标签"
+
+msgid "Fetching client list..."
+msgstr "获取客户端列表 ..."
+
+msgid ""
+msgstr ""
+
+msgid ""
+msgstr ""
+
+msgid ""
+msgstr ""
+
+msgid ""
+msgstr ""
+
+msgid ""
+msgstr ""
+
+msgid ""
+msgstr ""
