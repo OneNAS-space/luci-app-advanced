@@ -62,13 +62,4 @@ fi
 exit 0
 endef
 
-define Package/$(PKG_NAME)/prerm
-#!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-    /etc/init.d/bypass_guard stop
-    /etc/init.d/bypass_guard disable
-fi
-exit 0
-endef
-
 $(eval $(call BuildPackage,$(PKG_NAME)))
