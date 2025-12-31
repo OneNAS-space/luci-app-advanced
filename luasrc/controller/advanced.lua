@@ -271,16 +271,16 @@ function action_guard_data()
     for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
         local friendly_action = "—"
         if comment:find("Direct") then
-            if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
-            elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
-            else friendly_action = translate("Direct / Bypass")
+            if comment:find("BT") or comment:find("qB") then friendly_action = _("Direct / BitTorrent")
+            elseif comment:find("CF%-Tunnel") then friendly_action = _("Direct / Cloudflare Tunnel")
+            else friendly_action = _("Direct / Bypass")
             end
-        elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
-        elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
+        elseif comment:find("Global%-Bypass") then friendly_action = _("Direct / Global Whitelist")
+        elseif comment:find("PASS") then friendly_action = _("Proxy / Agent Redirect")
         elseif comment:find("Fix") or comment:find("Loopback") then
-            if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
-            elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
-            else friendly_action = translate("System / Routing Fix")
+            if comment:find("Local") then friendly_action = _("System / Router Self-Agent Redirect")
+            elseif comment:find("Loopback") then friendly_action = _("System / Loopback Bypass")
+            else friendly_action = _("System / Routing Fix")
             end
         end
         table.insert(rv.rules, {
