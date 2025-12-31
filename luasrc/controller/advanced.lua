@@ -283,8 +283,14 @@ function action_guard_data()
         if s.name then
             if s.ip then ip_map[s.ip] = s.name end
             if s.mac then
-                for m in s.mac:gmatch("%S+") do
-                    mac_map[m:lower()] = s.name
+                if type(s.mac) == "table" then
+                    for _, m in ipairs(s.mac) do
+                        mac_map[m:lower()] = s.name
+                    end
+                elseif type(s.mac) == "string" then
+                    for m in s.mac:gmatch("%S+") do
+                        mac_map[m:lower()] = s.name
+                    end
                 end
             end
         end
