@@ -46,14 +46,14 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
 <% if is_running then %>
 <div class="cbi-section">
-    <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("Redirection Clients")%></strong></div>
+    <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("VPN Clients")%></strong></div>
     <table class="cbi-section-table" id="clients_table">
         <tr class="cbi-section-table-titles">
             <th class="cbi-section-table-th"><%=translate("Hostname")%></th>
             <th class="cbi-section-table-th"><%=translate("MAC Address")%></th>
             <th class="cbi-section-table-th"><%=translate("IP Address")%></th>
             <th class="cbi-section-table-th"><%=translate("Type")%></th>
-            <th class="cbi-section-table-th"><%=translate("Role")%></th>
+            <th class="cbi-section-table-th"><%=translate("Tag")%></th>
         </tr>
         <tr class="cbi-section-table-row">
             <td colspan="5"><em><%=translate("Fetching client list...")%></em></td>
