@@ -296,11 +296,18 @@ function action_guard_data()
         end
     end)
 
+    local neigh_map = {}
+    local raw_neigh = sys.exec("ip neigh show") or ""
+    for ip, mac in raw_neigh:gmatch("([%d%.%a:]+)%s+dev%s+[^%s]+%s+lladdr%s+([%a%d:]+)") do
+        neigh_map[ip] = mac:lower()
+    end
+
     local function fetch_clients(set_name, is_server_group)
         local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name)) or ""
         local elements = raw_set:match("elements = { (.-) }")
         if elements then
             for single_ip in elements:gmatch("([^, %s]+)") do
+                single_ip = single_ip:gsub("[;,]", "")
                 if (single_ip:match("%d+%.%d+") or single_ip:find(":")) 
                     and not single_ip:find("timeout") 
                     and not single_ip:find("expires") then
@@ -314,12 +321,10 @@ function action_guard_data()
                     end
 
                     if not found then
-                        local current_mac = ""
-                        local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", single_ip)) or ""
-                        current_mac = mac_out:gsub("[%s\n]", ""):lower()
-                        local final_name = ip_map[single_ip] -- 先试 IP
+                        local current_mac = neigh_map[single_ip] or ""
+                        local final_name = ip_map[single_ip]
                         if not final_name and current_mac ~= "" and mac_map[current_mac] then
-                            final_name = mac_map[current_mac] -- 再试 MAC
+                            final_name = mac_map[current_mac]
                         end
                         table.insert(rv.clients, {
                             ip        = single_ip,
