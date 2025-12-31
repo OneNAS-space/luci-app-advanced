@@ -269,11 +269,25 @@ function action_guard_data()
     
     local raw_nft = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null") or ""
     for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+        local friendly_action = "—"
+        if comment:find("Direct") then
+            if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
+            elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
+            else friendly_action = translate("Direct / Bypass")
+            end
+        elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
+        elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
+        elseif comment:find("Fix") or comment:find("Loopback") then
+            if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
+            elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
+            else friendly_action = translate("System / Routing Fix")
+            end
+        end
         table.insert(rv.rules, {
             name    = comment,
             packets = packets,
             bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
-            comment = "Matched"
+            comment = friendly_action
         })
     end
 
