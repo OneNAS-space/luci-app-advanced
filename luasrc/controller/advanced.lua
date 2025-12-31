@@ -267,6 +267,19 @@ function action_guard_data()
     local uci = require "luci.model.uci".cursor()
     local rv = { rules = {}, clients = {} }
 
+    local ip_map = {}
+    local mac_map = {}
+    uci:foreach("dhcp", "host", function(s)
+        if s.name then
+            if s.ip then ip_map[s.ip] = s.name end
+            if s.mac then
+                for m in s.mac:gmatch("([^%s,]+)") do
+                    mac_map[m:lower()] = s.name
+                end
+            end
+        end
+    end)
+    
     local raw_nft = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null") or ""
     for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
         table.insert(rv.rules, {
@@ -277,35 +290,14 @@ function action_guard_data()
         })
     end
 
-    local name_map = {}
-    uci:foreach("dhcp", "host", function(s)
-        if s.name and s.ip then
-            name_map[s.ip] = s.name
-        end
-    end)
-
     local function find_hostname(ip)
         if not ip or ip == "" then return nil end
-        if name_map[ip] then return name_map[ip] end
-        local mac = ""
-        if ip:find(":") then
-            mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("[%s\n]", ""):lower()
-        else
-            mac = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)):gsub("[%s\n]", ""):lower()
-        end
-        if mac and mac ~= "" then
-            local n = nil
-            uci:foreach("dhcp", "host", function(s)
-                if s.name and s.mac then
-                    for m in s.mac:gmatch("([^%s,]+)") do
-                        if m:lower() == mac then
-                            n = s.name
-                            return false
-                        end
-                    end
-                end
-            end)
-            return n
+        if ip_map[ip] then return ip_map[ip] end
+        local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+        local mac = mac_out:gsub("[%s\n]", ""):lower()
+        
+        if mac ~= "" and mac_map[mac] then
+            return mac_map[mac]
         end
         return nil
     end
