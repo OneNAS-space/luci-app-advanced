@@ -4,6 +4,7 @@ local ltn12 = require "luci.ltn12"
 require "nixio.fs"
 local nixio = require "nixio"
 local u = require "luci.util"
+local translate = luci.i18n.translate
 
 function action_get_config()
     local uci = require "luci.model.uci".cursor()
@@ -271,16 +272,16 @@ function action_guard_data()
     for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
         local friendly_action = "—"
         if comment:find("Direct") then
-            if comment:find("BT") or comment:find("qB") then friendly_action = _("Direct / BitTorrent")
-            elseif comment:find("CF%-Tunnel") then friendly_action = _("Direct / Cloudflare Tunnel")
-            else friendly_action = _("Direct / Bypass")
+            if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
+            elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
+            else friendly_action = translate("Direct / Bypass")
             end
-        elseif comment:find("Global%-Bypass") then friendly_action = _("Direct / Global Whitelist")
-        elseif comment:find("PASS") then friendly_action = _("Proxy / Agent Redirect")
+        elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
+        elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
         elseif comment:find("Fix") or comment:find("Loopback") then
-            if comment:find("Local") then friendly_action = _("System / Router Self-Agent Redirect")
-            elseif comment:find("Loopback") then friendly_action = _("System / Loopback Bypass")
-            else friendly_action = _("System / Routing Fix")
+            if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
+            elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
+            else friendly_action = translate("System / Routing Fix")
             end
         end
         table.insert(rv.rules, {
@@ -407,7 +408,7 @@ function index()
         return
     end
     local e
-    e=entry({"admin","system","advanced"},cbi("advanced"),_("Advanced Function"),60)
+    e=entry({"admin","system","advanced"},cbi("advanced"),translate("Advanced Function"),60)
     e.dependent=true
 
     entry({"admin", "system", "advanced", "sysinfo"}, call("advanced_sysinfo"), nil).leaf = true
