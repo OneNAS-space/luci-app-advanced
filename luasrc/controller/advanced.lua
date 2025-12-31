@@ -295,20 +295,25 @@ function action_guard_data()
             end
         end
     end)
-    
+
     local function find_hostname(ip)
-        if not ip or ip == "" then return nil end
-        if ip_map[ip] then return ip_map[ip] end
+        if not ip then return nil, nil end
+        if ip_map[ip] then 
+            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+            local mac = mac_out:gsub("[%s\n]", ""):lower()
+            return ip_map[ip], mac 
+        end
         if ip:find(":") or ip:match("%d+%.%d+%.%d+%.%d+") then
             local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
             local mac = mac_out:gsub("[%s\n]", ""):lower()
             if mac ~= "" and mac_map[mac] then
-                return mac_map[mac]
+                return mac_map[mac], mac
             end
+            return nil, mac
         end
-        return nil
+        return nil, nil
     end
-    
+
     local function fetch_clients(set_name, is_server_group)
         local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name)) or ""
         local elements = raw_set:match("elements = { (.-) }")
@@ -327,9 +332,11 @@ function action_guard_data()
                     end
 
                     if not found then
+                        local name, mac = find_hostname(single_ip)
                         table.insert(rv.clients, {
                             ip        = single_ip,
-                            hostname  = find_hostname(single_ip) or "Configured-Device",
+                            mac       = (mac and mac ~= "") and mac:upper() or "—",
+                            hostname  = name or "Configured-Device",
                             is_server = is_server_group
                         })
                     end

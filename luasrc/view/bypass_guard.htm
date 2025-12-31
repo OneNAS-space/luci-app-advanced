@@ -54,12 +54,13 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     <table class="cbi-section-table" id="clients_table">
         <tr class="cbi-section-table-titles">
             <th class="cbi-section-table-th"><%=translate("Hostname")%></th>
+            <th class="cbi-section-table-th"><%=translate("MAC Address")%></th>
             <th class="cbi-section-table-th"><%=translate("IP Address")%></th>
             <th class="cbi-section-table-th"><%=translate("Type")%></th>
             <th class="cbi-section-table-th"><%=translate("Role")%></th>
         </tr>
         <tr class="cbi-section-table-row">
-            <td colspan="4"><em><%=translate("Fetching client list...")%></em></td>
+            <td colspan="5"><em><%=translate("Fetching client list...")%></em></td>
         </tr>
     </table>
 </div>
@@ -105,6 +106,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var tr = tc.insertRow(-1);
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = c.hostname ? '<strong>' + c.hostname + '</strong>' : '<em>unknown</em>';
+                        tr.insertCell(-1).innerHTML = '<code>' + (c.mac || '—') + '</code>';
                         var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
                         tr.insertCell(-1).innerHTML = '<code ' + ipStyle + '>' + c.ip + '</code>';
                         tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
@@ -118,7 +120,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                     while (tc.rows.length > 1) tc.deleteRow(1);
                     var tr = tc.insertRow(-1);
                     var td = tr.insertCell(-1);
-                    td.colSpan = 4;
+                    td.colSpan = 5;
                     td.innerHTML = '<em><%:No redirection clients found in NFT sets.%></em>';
                 }
             }
