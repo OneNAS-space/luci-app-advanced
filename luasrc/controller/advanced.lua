@@ -313,20 +313,25 @@ function action_guard_data()
 
     local function find_hostname(ip)
         if not ip then return nil, nil end
-        if ip_map[ip] then 
-            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
-            local mac = mac_out:gsub("[%s\n]", ""):lower()
-            return ip_map[ip], mac 
+        local name = nil
+        local mac = ""
+        if ip_map[ip] then
+            name = ip_map[ip]
         end
-        if ip:find(":") or ip:match("%d+%.%d+%.%d+%.%d+") then
-            local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
-            local mac = mac_out:gsub("[%s\n]", ""):lower()
-            if mac ~= "" and mac_map[mac] then
-                return mac_map[mac], mac
+        local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+        mac = mac_out:gsub("[%s\n]", ""):lower()
+        if not name and mac ~= "" and mac_map[mac] then
+            name = mac_map[mac]
+        end
+        if (not mac or mac == "") and name then
+            for m, n in pairs(mac_map) do
+                if n == name then
+                    mac = m:lower()
+                    break
+                end
             end
-            return nil, mac
         end
-        return nil, nil
+        return name, mac
     end
 
     local function fetch_clients(set_name, is_server_group)
