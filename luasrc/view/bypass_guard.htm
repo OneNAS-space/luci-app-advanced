@@ -138,9 +138,15 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     });
 
     function updateNatmapConfig(isChecked) {
+        var cb = document.getElementById('natmap_enable_cb');
         var val = isChecked ? '1' : '0';
+        if (cb) cb.disabled = true;
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
-            if (!data || data.code !== 0) alert('Config Update Failed');
+            if (cb) cb.disabled = false;
+            if (!data || data.code !== 0) {
+                alert('<%:Config Update Failed%>');
+                if (cb) cb.checked = !isChecked;
+            }
         });
     }
 
