@@ -33,7 +33,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 <% if has_natmap_conf then %>
 <hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid #000;" />
 <div class="cbi-value">
-    <label class="cbi-value-title"><strong><%=translate("Natmap qB-port direct")%></strong></label>
+    <label class="cbi-value-title"><strong><%=translate("Natmap qB-port Direct")%></strong></label>
     <div class="cbi-value-field">
         <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
         <br />
