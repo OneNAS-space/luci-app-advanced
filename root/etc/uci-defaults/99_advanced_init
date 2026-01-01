@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if ! uci get advanced.global >/dev/null 2>&1; then
+    if uci get advanced.@advanced[0] >/dev/null 2>&1; then
+        uci delete advanced.@advanced[0]
+    fi
+
+    if uci get advanced.@sysinfo[0] >/dev/null 2>&1; then
+        uci delete advanced.@sysinfo[0]
+    fi
+
+    uci set advanced.global=advanced
+    uci set advanced.global.enabled='1'
+    uci set advanced.global.enable_sysinfo='0'
+    uci set advanced.global.enable_bypass='0'
+    uci set advanced.global.enable_natmap='0'
+    uci commit advanced
+fi
+
+/etc/init.d/rpcd reload
+exit 0

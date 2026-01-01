@@ -4,16 +4,34 @@ local ltn12 = require "luci.ltn12"
 require "nixio.fs"
 local nixio = require "nixio"
 local u = require "luci.util"
+local translate = luci.i18n.translate
+
+function action_get_config()
+    local uci = require "luci.model.uci".cursor()
+    local conf = uci:get_all("advanced", "global") or {}
+    local rv = {
+        enabled        = conf.enabled or "0",
+        enable_sysinfo = conf.enable_sysinfo or "0",
+        enable_bypass  = conf.enable_bypass or "0",
+        enable_natmap  = conf.enable_natmap or "0"
+    }
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(rv)
+end
 
 function advanced_sysinfo(value)
-    luci.http.header("Content-Type", "application/json")
+    local is_enable = (luci.http.formvalue("value") == "1")
+    local uci = require "luci.model.uci".cursor()
+    uci:set("advanced", "global", "enable_sysinfo", is_enable and "1" or "0")
+    uci:commit("advanced")
+
+    luci.http.prepare_content("application/json")
     
     local PROFILE_PATH = "/etc/profile"
     local SYSINFO_LINE = "/etc/sysinfo"
-    local is_enable = (luci.http.formvalue("value") == "1")
 
     if not nixio.fs.access(PROFILE_PATH) then
-        luci.http.write('{ "code": 1, "error": "Profile file not found." }')
+        luci.http.write_json({ code = 1, error = "Profile file not found." })
         return
     end
 
@@ -29,7 +47,7 @@ function advanced_sysinfo(value)
         luci.sys.exec("chmod +x /etc/sysinfo 2>/dev/null")
     end
 
-    luci.http.write('{ "code": 0, "status": "%s" }' % (is_enable and "enabled" or "disabled"))
+    luci.http.write_json({ code = 0, status = is_enable and "enabled" or "disabled" })
 end
 
 function list_response(path, success)
@@ -232,23 +250,203 @@ function to_mime(filename)
     return "application/octet-stream"
 end
 
+local function format_bytes(bytes)
+    bytes = tonumber(bytes) or 0
+    if bytes >= 1073741824 then
+        return string.format("%.2f GiB", bytes / 1073741824)
+    elseif bytes >= 1048576 then
+        return string.format("%.2f MiB", bytes / 1048576)
+    elseif bytes >= 1024 then
+        return string.format("%.2f KiB", bytes / 1024)
+    else
+        return bytes .. " B"
+    end
+end
+
+function action_guard_data()
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+    local rv = { rules = {}, clients = {} }
+    
+    local raw_nft = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null") or ""
+    for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+        local friendly_action = "—"
+        if comment:find("Direct") then
+            if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
+            elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
+            else friendly_action = translate("Direct / Bypass")
+            end
+        elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
+        elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
+        elseif comment:find("Fix") or comment:find("Loopback") then
+            if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
+            elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
+            else friendly_action = translate("System / Routing Fix")
+            end
+        end
+        table.insert(rv.rules, {
+            name    = comment,
+            packets = packets,
+            bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+            comment = friendly_action
+        })
+    end
+
+    local ip_map = {}
+    local mac_map = {}
+    uci:foreach("dhcp", "host", function(s)
+        if s.name then
+            if s.ip then ip_map[s.ip] = s.name end
+            if s.mac then
+                if type(s.mac) == "table" then
+                    for _, m in ipairs(s.mac) do
+                        mac_map[m:lower()] = s.name
+                    end
+                elseif type(s.mac) == "string" then
+                    for m in s.mac:gmatch("%S+") do
+                        mac_map[m:lower()] = s.name
+                    end
+                end
+            end
+        end
+    end)
+
+    local function find_hostname(ip)
+        if not ip then return nil, nil end
+        local name = nil
+        local mac = ""
+        if ip_map[ip] then
+            name = ip_map[ip]
+        end
+        local mac_out = sys.exec(string.format("ip neigh show %s | awk '{print $5}'", ip)) or ""
+        mac = mac_out:gsub("[%s\n]", ""):lower()
+        if not name and mac ~= "" and mac_map[mac] then
+            name = mac_map[mac]
+        end
+        if (not mac or mac == "") and name then
+            for m, n in pairs(mac_map) do
+                if n == name then
+                    mac = m:lower()
+                    break
+                end
+            end
+        end
+        return name, mac
+    end
+
+    local function fetch_clients(set_name, is_server_group)
+        local raw_set = sys.exec(string.format("nft list set inet bypass_logic %s 2>/dev/null", set_name)) or ""
+        local elements = raw_set:match("elements = { (.-) }")
+        if elements then
+            for single_ip in elements:gmatch("([^, %s]+)") do
+                if (single_ip:match("%d+%.%d+") or single_ip:find(":")) 
+                    and not single_ip:find("timeout") 
+                    and not single_ip:find("expires") then
+                    local found = false
+                    for _, existing in ipairs(rv.clients) do
+                        if existing.ip == single_ip then
+                            if is_server_group then existing.is_server = true end
+                            found = true
+                            break
+                        end
+                    end
+
+                    if not found then
+                        local name, mac = find_hostname(single_ip)
+                        table.insert(rv.clients, {
+                            ip        = single_ip,
+                            mac       = (mac and mac ~= "") and mac:upper() or "—",
+                            hostname  = name or "Configured-Device",
+                            is_server = is_server_group
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    fetch_clients("psw_vpn_clients", false)
+    fetch_clients("psw_vpn_clients6", false)
+    fetch_clients("quic_direct_clients", true)
+    fetch_clients("quic_direct_clients6", true)
+
+    luci.http.prepare_content("application/json")
+    luci.http.write_json(rv)
+end
+
+function action_guard_status()
+    local set = luci.http.formvalue("set")
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+    
+    if set == "enable" then
+        uci:set("advanced", "global", "enable_bypass", "1")
+        uci:commit("advanced")
+        sys.exec("/etc/init.d/bypass_guard enable")
+        sys.exec("/etc/init.d/bypass_guard start")
+    elseif set == "disable" then
+        uci:set("advanced", "global", "enable_bypass", "0")
+        uci:commit("advanced")
+        sys.exec("/etc/init.d/bypass_guard stop")
+        sys.exec("/etc/init.d/bypass_guard disable")
+    end
+    
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ code = 0 })
+end
+
+function action_set_natmap()
+    local set = luci.http.formvalue("set")
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+    local script_path = "/usr/share/bypass_guard/scripts/natmap_bypass.sh"
+    uci:set("advanced", "global", "enable_natmap", set)
+    uci:commit("advanced")
+
+    uci:foreach("natmap", "natmap", function(s)
+        if s.comment == "qBittorrent" then
+            local sid = s[".name"]
+            if set == "1" then
+                uci:set("natmap", sid, "custom_script", script_path)
+            else
+                uci:set("natmap", sid, "custom_script", "")
+            end
+        end
+    end)
+    uci:commit("natmap")
+    sys.exec("/etc/init.d/natmap reload")
+    
+    local running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
+    if running then
+        sys.exec("/etc/init.d/bypass_guard reload")
+    end
+    
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ code = 0 })
+end
+
 function index()
     if not nixio.fs.access("/etc/config/advanced")then
         return
     end
     local e
-    e=entry({"admin","system","advanced"},cbi("advanced"),_("Advanced Function"),60)
+    e=entry({"admin","system","advanced"},cbi("advanced"),translate("Advanced Function"),60)
     e.dependent=true
 
     entry({"admin", "system", "advanced", "sysinfo"}, call("advanced_sysinfo"), nil).leaf = true
 
     local fa_base = entry({"admin", "system", "advanced", "fileassistant"}, nil, nil)
     fa_base.i18n = "base"
-    
+
     entry({"admin", "system", "advanced", "fileassistant", "list"}, call("fileassistant_list"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "open"}, call("fileassistant_open"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "delete"}, call("fileassistant_delete"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "rename"}, call("fileassistant_rename"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "upload"}, call("fileassistant_upload"), nil).leaf = true
     entry({"admin", "system", "advanced", "fileassistant", "install"}, call("fileassistant_install"), nil).leaf = true
+
+    entry({"admin", "system", "advanced", "guard_data"}, call("action_guard_data"), nil).leaf = true
+    entry({"admin", "system", "advanced", "guard_status"}, call("action_guard_status"), nil).leaf = true
+    entry({"admin", "system", "advanced", "get_guard_config"}, call("action_get_config"), nil).leaf = true
+    entry({"admin", "system", "advanced", "set_natmap"}, call("action_set_natmap"), nil).leaf = true
 end

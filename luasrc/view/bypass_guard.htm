@@ -1,0 +1,175 @@
+<%+cbi/valueheader%>
+<%
+local uci = require "luci.model.uci".cursor()
+local sys = require "luci.sys" 
+local fs = require "nixio.fs"
+local uci_enabled = (uci:get("advanced", "global", "enable_bypass") == "1")
+local nft_running = (sys.call("nft list chain inet bypass_logic prerouting >/dev/null 2>&1") == 0)
+local is_running = (uci_enabled and nft_running)
+local has_natmap_conf = fs.access("/etc/config/natmap")
+%>
+
+<div class="cbi-section">
+<% if is_running then %>
+    <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("Bypass Logic Traffic Statistics")%></strong></div>
+    <table class="cbi-section-table" id="bypass_status_table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-th"><%=translate("Rule Name")%></th>
+            <th class="cbi-section-table-th"><%=translate("Packets")%></th>
+            <th class="cbi-section-table-th"><%=translate("Bytes")%></th>
+            <th class="cbi-section-table-th"><%=translate("Action / Comment")%></th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td colspan="4"><em><%=translate("Collecting data...")%></em></td>
+        </tr>
+    </table>
+    <% else %>
+    <div class="cbi-section-descr">
+        <em style="color: #999;"><%:Statistics not available (Service is stopped)%></em>
+    </div>
+<% end %>
+</div>
+
+<% if has_natmap_conf then %>
+<hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid #000;" />
+<div class="cbi-value">
+    <label class="cbi-value-title"><strong><%=translate("Natmap Integration")%></strong></label>
+    <div class="cbi-value-field">
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+        <br />
+        <div class="cbi-value-description">
+            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+                <%=translate("Update firewall rules automatically when Natmap port changes.")%>
+                <% if not is_running then %>(<%:Enable Bypass Guard first%>)<% end %>
+            </span>
+        </div>
+    </div>
+</div>
+<% end %>
+
+<% if is_running then %>
+<div class="cbi-section">
+    <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("VPN Clients")%></strong></div>
+    <table class="cbi-section-table" id="clients_table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-th"><%=translate("Hostname")%></th>
+            <th class="cbi-section-table-th"><%=translate("MAC Address")%></th>
+            <th class="cbi-section-table-th"><%=translate("IP Address")%></th>
+            <th class="cbi-section-table-th"><%=translate("Type")%></th>
+            <th class="cbi-section-table-th"><%=translate("Tag")%></th>
+        </tr>
+        <tr class="cbi-section-table-row">
+            <td colspan="5"><em><%=translate("Fetching client list...")%></em></td>
+        </tr>
+    </table>
+</div>
+<% end %>
+
+<style>
+    .label { font-weight: bold; font-size: 0.9em; }
+    #clients_table code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+</style>
+
+<script type="text/javascript">//<![CDATA[
+    <% if is_running then %>
+    XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
+        function(x, data) {
+            var tb = document.getElementById('bypass_status_table');
+            if (tb) {
+                if (data && data.rules && data.rules.length > 0) {
+                    while (tb.rows.length > 1) tb.deleteRow(1);
+                    for (var i = 0; i < data.rules.length; i++) {
+                        var r = data.rules[i];
+                        var tr = tb.insertRow(-1);
+                        tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+                        tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
+                        tr.insertCell(-1).innerHTML = r.packets;
+                        tr.insertCell(-1).innerHTML = r.bytes;
+                        tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
+                    }
+                } else {
+                    while (tb.rows.length > 1) tb.deleteRow(1);
+                    var tr = tb.insertRow(-1);
+                    var td = tr.insertCell(-1);
+                    td.colSpan = 4;
+                    td.innerHTML = '<em><%:No traffic data detected yet...%></em>';
+                }
+            }
+
+            var tc = document.getElementById('clients_table');
+            if (tc) {
+                if (data && data.clients && data.clients.length > 0) {
+                    while (tc.rows.length > 1) tc.deleteRow(1);
+                    for (var i = 0; i < data.clients.length; i++) {
+                        var c = data.clients[i];
+                        var tr = tc.insertRow(-1);
+                        tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
+                        tr.insertCell(-1).innerHTML = c.hostname ? '<strong>' + c.hostname + '</strong>' : '<em>unknown</em>';
+                        tr.insertCell(-1).innerHTML = '<code>' + (c.mac || '—') + '</code>';
+                        var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
+                        tr.insertCell(-1).innerHTML = '<code ' + ipStyle + '>' + c.ip + '</code>';
+                        tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
+                        var roleHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 4px; border-radius:3px;">VPN</span>';
+                        if (c.is_server) {
+                            roleHtml += ' <span class="label" style="background-color:#0069d6; color:white; padding:2px 4px; border-radius:3px; margin-left:4px;">Server</span>';
+                        }
+                        tr.insertCell(-1).innerHTML = roleHtml;
+                    }
+                } else {
+                    while (tc.rows.length > 1) tc.deleteRow(1);
+                    var tr = tc.insertRow(-1);
+                    var td = tr.insertCell(-1);
+                    td.colSpan = 5;
+                    td.innerHTML = '<em><%:No redirection clients found in NFT sets.%></em>';
+                }
+            }
+        }
+    );
+    <% end %>
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var cb = document.getElementById('natmap_enable_cb');
+        if (cb) {
+            XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "get_guard_config")%>', null, function(x, data) {
+                if (data) {
+                    cb.checked = (data.enable_natmap === '1');
+                }
+            });
+        }
+    });
+
+    function updateNatmapConfig(isChecked) {
+        var cb = document.getElementById('natmap_enable_cb');
+        var val = isChecked ? '1' : '0';
+        if (cb) cb.disabled = true;
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
+            if (cb) cb.disabled = false;
+            if (!data || data.code !== 0) {
+                alert('<%:Config Update Failed%>');
+                if (cb) cb.checked = !isChecked;
+            } else {
+                location.reload();
+            }
+        });
+    }
+
+    function toggleBypass(action) {
+        var btn = document.getElementById('guard_btn');
+        btn.disabled = true;
+        btn.value = '<%:Applying...%>';
+        XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_status")%>', { set: action }, function(x, data) {
+            location.reload();
+        });
+    }
+//]]></script>
+
+<div class="cbi-value" style="padding-left: 3px; margin-top: 0.5rem;">
+    <div class="cbi-value-field">
+        <% if is_running then %>
+            <input type="button" id="guard_btn" class="btn cbi-button cbi-button-negative" onclick="toggleBypass('disable')" value="<%=translate('Stop Bypass Guard')%>" />
+        <% else %>
+            <input type="button" id="guard_btn" class="btn cbi-button cbi-button-positive" onclick="toggleBypass('enable')" value="<%=translate('Start Bypass Guard')%>" />
+        <% end %>
+    </div>
+</div>
+<%+cbi/valuefooter%>
