@@ -377,13 +377,16 @@ end
 function action_guard_status()
     local set = luci.http.formvalue("set")
     local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
     
     if set == "enable" then
-        sys.exec("uci set advanced.global.enable_bypass='1' && uci commit advanced")
+        uci:set("advanced", "global", "enable_bypass", "1")
+        uci:commit("advanced")
         sys.exec("/etc/init.d/bypass_guard enable")
         sys.exec("/etc/init.d/bypass_guard start")
     elseif set == "disable" then
-        sys.exec("uci set advanced.global.enable_bypass='0' && uci commit advanced")
+        uci:set("advanced", "global", "enable_bypass", "0")
+        uci:commit("advanced")
         sys.exec("/etc/init.d/bypass_guard stop")
         sys.exec("/etc/init.d/bypass_guard disable")
     end
