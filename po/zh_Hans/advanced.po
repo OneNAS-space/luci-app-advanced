@@ -128,8 +128,8 @@ msgstr "分类说明"
 msgid "Collecting data..."
 msgstr "收集数据 ..."
 
-msgid "Natmap Integration"
-msgstr "Natmap 集成"
+msgid "Natmap qB-port Direct"
+msgstr "Natmap映射qB端口直连"
 
 msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap 端口更改时自动更新防火墙规则。"
