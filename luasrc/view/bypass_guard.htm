@@ -149,10 +149,11 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                 if (cb) cb.checked = !isChecked;
             } else {
                 if (desc) {
-                desc.style.color = isChecked ? '#666' : '#999';
-                var originalText = desc.innerHTML;
-                desc.innerHTML += ' <b style="color:green">✓</b>';
-                setTimeout(function() { desc.innerHTML = originalText; }, 2000);
+                    desc.style.color = isChecked ? '#666' : '#999';
+                    var originalText = desc.innerHTML;
+                    desc.innerHTML += ' <b style="color:green">✓</b>';
+                    setTimeout(function() { desc.innerHTML = originalText; }, 2000);
+                }
             }
         });
     }
