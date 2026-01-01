@@ -415,7 +415,7 @@ function action_set_natmap()
     
     local running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
     if running then
-        sys.exec("/etc/init.d/bypass_guard restart")
+        sys.exec("/etc/init.d/bypass_guard reload")
     end
     
     luci.http.prepare_content("application/json")
