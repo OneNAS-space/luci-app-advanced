@@ -392,13 +392,27 @@ function action_guard_status()
     luci.http.write_json({ code = 0 })
 end
 
--- 异步设置 Natmap 开关
 function action_set_natmap()
     local set = luci.http.formvalue("set")
     local sys = require "luci.sys"
-    sys.exec(string.format("uci set advanced.global.enable_natmap='%s' && uci commit advanced", set))
+    local uci = require "luci.model.uci".cursor()
+    local script_path = "/usr/share/bypass_guard/scripts/natmap_bypass.sh"
+    uci:set("advanced", "global", "enable_natmap", set)
+    uci:commit("advanced")
+
+    uci:foreach("natmap", "natmap", function(s)
+        if s.comment == "qBittorrent" then
+            local sid = s[".name"]
+            if set == "1" then
+                uci:set("natmap", sid, "custom_script", script_path)
+            else
+                uci:set("natmap", sid, "custom_script", "")
+            end
+        end
+    end)
+    uci:commit("natmap")
+    sys.exec("/etc/init.d/natmap reload")
     
-    -- 如果服务正在运行，立即重启以应用联动逻辑
     local running = (sys.call("/etc/init.d/bypass_guard status >/dev/null 2>&1") == 0)
     if running then
         sys.exec("/etc/init.d/bypass_guard restart")
