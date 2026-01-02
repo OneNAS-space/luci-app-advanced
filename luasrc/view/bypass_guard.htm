@@ -9,8 +9,23 @@ local is_running = (uci_enabled and nft_running)
 local has_natmap_conf = fs.access("/etc/config/natmap")
 %>
 
-<div class="cbi-section">
 <% if is_running then %>
+<% if has_natmap_conf then %>
+<div class="cbi-value" style="margin-top: 1rem;">
+    <label class="cbi-value-title"><strong><%=translate("Natmap qB-port Direct")%></strong></label>
+    <div class="cbi-value-field">
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+        <br />
+        <div class="cbi-value-description">
+            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+                <%=translate("Update firewall rules automatically when Natmap port changes.")%>
+            </span>
+        </div>
+    </div>
+</div>
+<% end %>
+
+<div class="cbi-section">
     <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("Bypass Logic Traffic Statistics")%></strong></div>
     <table class="cbi-section-table" id="bypass_status_table">
         <tr class="cbi-section-table-titles">
@@ -23,31 +38,8 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
             <td colspan="4"><em><%=translate("Collecting data...")%></em></td>
         </tr>
     </table>
-    <% else %>
-    <div class="cbi-section-descr">
-        <em style="color: #999;"><%:Statistics not available (Service is stopped)%></em>
-    </div>
-<% end %>
 </div>
 
-<% if has_natmap_conf then %>
-<hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid #000;" />
-<div class="cbi-value">
-    <label class="cbi-value-title"><strong><%=translate("Natmap qB-port Direct")%></strong></label>
-    <div class="cbi-value-field">
-        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
-        <br />
-        <div class="cbi-value-description">
-            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
-                <%=translate("Update firewall rules automatically when Natmap port changes.")%>
-                <% if not is_running then %>(<%:Enable Bypass Guard first%>)<% end %>
-            </span>
-        </div>
-    </div>
-</div>
-<% end %>
-
-<% if is_running then %>
 <div class="cbi-section">
     <div class="cbi-section-descr" style="padding-left: 3px; margin-top: 1rem;"><strong><%=translate("VPN Clients")%></strong></div>
     <table class="cbi-section-table" id="clients_table">
@@ -62,6 +54,13 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
             <td colspan="5"><em><%=translate("Fetching client list...")%></em></td>
         </tr>
     </table>
+</div>
+
+<% else %>
+<div class="cbi-section">
+    <div class="cbi-section-descr">
+        <em style="color: #999;"><%:Statistics and Client list not available (Service is stopped)%></em>
+    </div>
 </div>
 <% end %>
 
@@ -82,7 +81,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var r = data.rules[i];
                         var tr = tb.insertRow(-1);
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
-                        tr.insertCell(-1).innerHTML = '<strong>' + r.name + '</strong>';
+                        tr.insertCell(-1).innerHTML = r.name
                         tr.insertCell(-1).innerHTML = r.packets;
                         tr.insertCell(-1).innerHTML = r.bytes;
                         tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
@@ -104,7 +103,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var c = data.clients[i];
                         var tr = tc.insertRow(-1);
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
-                        tr.insertCell(-1).innerHTML = c.hostname ? '<strong>' + c.hostname + '</strong>' : '<em>unknown</em>';
+                        tr.insertCell(-1).innerHTML = c.hostname ? c.hostname : '<em>unknown</em>';
                         tr.insertCell(-1).innerHTML = '<code>' + (c.mac || '—') + '</code>';
                         var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
                         tr.insertCell(-1).innerHTML = '<code ' + ipStyle + '>' + c.ip + '</code>';
