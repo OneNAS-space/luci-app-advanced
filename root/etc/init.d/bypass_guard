@@ -52,6 +52,8 @@ setup_nft() {
     nft add table inet bypass_logic 2>/dev/null
     nft flush chain inet bypass_logic prerouting 2>/dev/null || \
     nft "add chain inet bypass_logic prerouting { type filter hook prerouting priority -400; policy accept; }"
+    nft flush chain inet bypass_logic qb_fix 2>/dev/null || \
+    nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }"
 
     nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }"
     nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; flags timeout; }"
@@ -166,6 +168,18 @@ sync_natmap() {
         fi
     else
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
+    fi
+
+    local cache_dir="/tmp/natmap_cache"
+    if [ -d "$cache_dir" ]; then
+        for rule_file in "$cache_dir"/*.tcp_fix_rule; do
+            [ -e "$rule_file" ] || continue
+            local rule_content=$(cat "$rule_file")
+            if [ -n "$rule_content" ]; then
+                nft "add rule inet bypass_logic qb_fix $rule_content" 2>/dev/null
+                logger -t bypass_guard "Sync: Restored TCP Redirect rule: $rule_content"
+            fi
+        done
     fi
 }
 
