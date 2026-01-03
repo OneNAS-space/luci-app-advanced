@@ -59,6 +59,16 @@ setup_nft() {
     nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }"
     nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }"
 
+    nft add rule inet bypass_logic prerouting tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-Direct"
+    nft add rule inet bypass_logic prerouting tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-Direct"
+    nft add rule inet bypass_logic prerouting udp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-Direct"
+    nft add rule inet bypass_logic prerouting udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-Direct"
+
+    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
+    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-udp-Direct"
+    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-tcp-Direct"
+    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-UDP-Direct"
+
     nft add rule inet bypass_logic prerouting fib daddr type local counter return comment "Local-Fix"
     local lan_addr=$(uci -q get network.lan.ipaddr)
     case "$lan_addr" in
@@ -71,15 +81,6 @@ setup_nft() {
     if [ -n "$lan_addr6" ]; then
         nft add rule inet bypass_logic prerouting ip6 daddr "$lan_addr6" counter return comment "Loopback-v6-Fix"
     fi
-
-    nft add rule inet bypass_logic prerouting ct status dnat counter meta mark set 0xff accept comment "BT-Inbound-Direct"
-    nft add rule inet bypass_logic prerouting tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-Direct"
-    nft add rule inet bypass_logic prerouting udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-Direct"
-
-    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
-    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-udp-Direct"
-    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-tcp-Direct"
-    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-UDP-Direct"
 
     if [ "$is_broken" -eq 0 ] && [ "$psw_online" -eq 1 ]; then
         nft add rule inet bypass_logic prerouting ip saddr @psw_vpn_clients counter meta mark set 0 accept comment "AGENT-PASS"
