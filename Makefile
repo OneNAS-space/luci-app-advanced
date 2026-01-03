@@ -7,8 +7,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
-PKG_VERSION:=2.4.0
-PKG_RELEASE:=2
+PKG_VERSION:=2.4.1
+PKG_RELEASE:=1
 PKG_BUILD_DEPENDS:=luci-base/host
 
 define Package/$(PKG_NAME)
