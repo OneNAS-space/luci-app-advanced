@@ -267,47 +267,40 @@ function action_guard_data()
     local sys = require "luci.sys"
     local uci = require "luci.model.uci".cursor()
     local rv = { rules = {}, clients = {} }
+    local all_nft = sys.exec("nft -p list table inet bypass_logic 2>/dev/null") or ""
 
-    local chains_to_scan = {
-        "prerouting",
-        "qb_fix"
-    }
-
-    for _, chain in ipairs(chains_to_scan) do
-        local raw_nft = sys.exec("nft -p list chain inet bypass_logic prerouting 2>/dev/null") or ""
-        if chain == "prerouting" then
-            for packets, bytes, comment in raw_nft:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
-                local friendly_action = "—"
-                if comment:find("Direct") then
-                    if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
-                    elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
-                    else friendly_action = translate("Direct / Bypass")
-                    end
-                elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
-                elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
-                elseif comment:find("Fix") or comment:find("Loopback") then
-                    if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
-                    elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
-                    else friendly_action = translate("System / Routing Fix")
-                    end
-                end
-                table.insert(rv.rules, {
-                    name    = comment,
-                    packets = packets,
-                    bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
-                    comment = friendly_action
-                })
+    local prerouting_block = all_nft:match("chain prerouting%s+{(.-)}") or ""
+    for packets, bytes, comment in prerouting_block:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+        local friendly_action = "—"
+        if comment:find("Direct") then
+            if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
+            elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
+            else friendly_action = translate("Direct / Bypass")
             end
-        elseif chain == "qb_fix" then
-            for dport, packets, bytes, target in raw_nft:gmatch("tcp dport (%d+) counter packets (%d+) bytes (%d+) dnat ip to ([%d%.%:]+)") do
-                table.insert(rv.rules, {
-                    name    = "TCP-Align: " .. dport,
-                    packets = packets,
-                    bytes   = format_bytes(bytes),
-                    comment = translate("NAT / Port Alignment") .. " -> " .. target
-                })
+        elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
+        elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
+        elseif comment:find("Fix") or comment:find("Loopback") then
+            if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
+            elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
+            else friendly_action = translate("System / Routing Fix")
             end
         end
+        table.insert(rv.rules, {
+            name    = comment,
+            packets = packets,
+            bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+            comment = friendly_action
+        })
+    end
+
+    local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
+    for dport, packets, bytes, target in qb_fix_block:gmatch("dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+        table.insert(rv.rules, {
+            name    = "TCP-Align: " .. dport,
+            packets = packets,
+            bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+            comment = translate("NAT / Port Alignment") .. " -> " .. target
+        })
     end
 
     local ip_map = {}
