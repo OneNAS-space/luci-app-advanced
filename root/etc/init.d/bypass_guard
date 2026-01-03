@@ -171,6 +171,7 @@ sync_natmap() {
     fi
 
     local cache_dir="/tmp/natmap_cache"
+    nft flush chain inet bypass_logic qb_fix 2>/dev/null
     if [ -d "$cache_dir" ]; then
         for rule_file in "$cache_dir"/*.tcp_fix_rule; do
             [ -e "$rule_file" ] || continue
