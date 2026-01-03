@@ -59,10 +59,10 @@ setup_nft() {
     nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }"
     nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }"
 
-    nft add rule inet bypass_logic prerouting tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-Direct"
-    nft add rule inet bypass_logic prerouting tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-Direct"
-    nft add rule inet bypass_logic prerouting udp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-Direct"
-    nft add rule inet bypass_logic prerouting udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-Direct"
+    nft add rule inet bypass_logic prerouting tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
+    nft add rule inet bypass_logic prerouting tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-sport-Direct"
+    nft add rule inet bypass_logic prerouting udp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-dport-Direct"
+    nft add rule inet bypass_logic prerouting udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-sport-Direct"
 
     nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
     nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-udp-Direct"
