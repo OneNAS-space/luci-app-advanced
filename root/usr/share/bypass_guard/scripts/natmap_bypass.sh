@@ -37,9 +37,8 @@ if [ -n "$OUTER_PORT" ] && [ -n "$INNER_PORT" ]; then
             if [ -n "$UDP_MASTER_PORT" ] && [ "$OUTER_PORT" != "$UDP_MASTER_PORT" ]; then
                 REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
                 if [ -n "$REAL_TARGET_IP" ]; then
-                    nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
-                    nft flush chain inet bypass_logic qb_fix
                     nft "add rule inet bypass_logic qb_fix ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$UDP_MASTER_PORT" 2>/dev/null
+                    echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule"
                 fi
             fi
         fi
