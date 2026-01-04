@@ -35,6 +35,10 @@ The effect enabled is as follows：
 
 root@MX5300:~#
 ```
+- `PSW bypass` The new advance bypass plug-in specially written for `Passwall2` allows the NAS host traffic in the intranet, which needs to be both proxy and directly connected, to be diverted before entering `Passwall2`, thus reducing the system load. At the same time, it has disaster prevention and diversion statistics functions. It integrates `NATmap` custom script to realize `qBittorrent` traffic bypass `Passwall2`. Similarly, let the traffic of `Cloudflared tunnel` be processed in advance. You don't need to set the ACL of `Passwall2`, set the VPN tag for the client ip that needs a proxy in `Dnsmasq`, and then enable `PSW bypass` to make the intranet device split. On AIO's OpenWRT, this is extremely important, which can significantly reduce the system load, and even if the `Passwall2` program fails, `PSW bypass` can at least keep your network online ...
+
+<img width="1194" height="766" alt="Screenshot 2026-01-04 at 14 49 59" src="https://github.com/user-attachments/assets/00d885ba-8757-43e2-962c-4ff30a457070" />
+
 ### A few small improvements
 - Rename the main menu to `Advanced Function`
 - Merge the original independent menu item `File manager`/`File Assistant` into the main menu item and exist as `s.tab`
