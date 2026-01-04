@@ -13,34 +13,43 @@ PORT_FILE="/tmp/natmap_qb_outer_port"
 
 [ "$(uci -q get advanced.global.enable_natmap)" != "1" ] && exit 0
 
-if [ -n "$OUTER_PORT" ] && [ -n "$INNER_PORT" ]; then
-    nft add table inet bypass_logic 2>/dev/null
-    nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
+if [ -z "$OUTER_PORT" ] || [ -z "$INNER_PORT" ]; then
+    exit 1
+fi
 
-    if [ -f "$OLD_PORT_FILE" ]; then
-        OLD_PORT=$(cat "$OLD_PORT_FILE")
-        if [ -n "$OLD_PORT" ] && [ "$OLD_PORT" != "$OUTER_PORT" ]; then
-            nft delete element inet bypass_logic qb_dynamic_ports { "$OLD_PORT" } 2>/dev/null
-            logger -t natmap_bypass "Cleaned old port: $OLD_PORT for $SID"
-        fi
+nft add table inet bypass_logic 2>/dev/null
+nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
+nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
+
+if [ -f "$OLD_PORT_FILE" ]; then
+    OLD_PORT=$(cat "$OLD_PORT_FILE")
+    if [ -n "$OLD_PORT" ] && [ "$OLD_PORT" != "$OUTER_PORT" ]; then
+        nft delete element inet bypass_logic qb_dynamic_ports { "$OLD_PORT" } 2>/dev/null
+        logger -t natmap_bypass "Cleaned old port: $OLD_PORT for $SID"
     fi
-    echo "$OUTER_PORT" > "$OLD_PORT_FILE"
+fi
+echo "$OUTER_PORT" > "$OLD_PORT_FILE"
 
-    nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT timeout 24h }" 2>/dev/null
-    nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT timeout 24h }" 2>/dev/null
+nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT timeout 24h }" 2>/dev/null
+nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT timeout 24h }" 2>/dev/null
 
-    if [ "$PROTOCOL" = "udp" ]; then
-        echo "$OUTER_PORT" > "$PORT_FILE"
-    elif [ "$PROTOCOL" = "tcp" ]; then
-        if [ -f "$PORT_FILE" ]; then
-            UDP_MASTER_PORT=$(cat "$PORT_FILE")
-            if [ -n "$UDP_MASTER_PORT" ] && [ "$OUTER_PORT" != "$UDP_MASTER_PORT" ]; then
-                REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
-                if [ -n "$REAL_TARGET_IP" ]; then
-                    RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$UDP_MASTER_PORT"
-                    nft "add rule inet bypass_logic qb_fix $RULE" 2>/dev/null
-                    echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule"
-                fi
+if [ "$PROTOCOL" = "udp" ]; then
+    echo "$OUTER_PORT" > "$PORT_FILE"
+elif [ "$PROTOCOL" = "tcp" ]; then
+    local RETRY=10
+    while [ ! -f "$PORT_FILE" ] && [ "$RETRY" -gt 0 ]; do
+        logger -t natmap_bypass "QB_FIX: TCP mapping ready, but UDP port file missing. Waiting... ($RETRY)"
+        sleep 1
+        RETRY=$((RETRY - 1))
+    done
+    if [ -f "$PORT_FILE" ]; then
+        UDP_MASTER_PORT=$(cat "$PORT_FILE")
+        if [ -n "$UDP_MASTER_PORT" ] && [ "$OUTER_PORT" != "$UDP_MASTER_PORT" ]; then
+            REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
+            if [ -n "$REAL_TARGET_IP" ]; then
+                RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$UDP_MASTER_PORT"
+                nft "add rule inet bypass_logic qb_fix $RULE" 2>/dev/null
+                echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule"
             fi
         fi
     fi
