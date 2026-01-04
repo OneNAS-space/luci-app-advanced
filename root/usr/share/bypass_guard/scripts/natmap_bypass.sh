@@ -39,7 +39,7 @@ if [ -n "$OUTER_PORT" ] && [ -n "$INNER_PORT" ]; then
                 if [ -n "$REAL_TARGET_IP" ]; then
                     RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$UDP_MASTER_PORT"
                     nft "add rule inet bypass_logic qb_fix $RULE" 2>/dev/null
-                    echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule
+                    echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule"
                 fi
             fi
         fi
