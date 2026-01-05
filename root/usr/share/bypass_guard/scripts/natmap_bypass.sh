@@ -1,6 +1,7 @@
 #!/bin/sh
-# $2 = Outer Port, $4 = Inner Port, $5 = Protocol, $7 = SID
+# $1 = Public IP, $2 = Outer Port, $4 = Inner Port, $5 = Protocol, $7 = SID
 
+PUBLIC_IP="$1"
 OUTER_PORT="$2"
 INNER_PORT="$4"
 PROTOCOL="$5"
@@ -8,8 +9,11 @@ SID="$7"
 
 CACHE_DIR="/tmp/natmap_cache"
 mkdir -p "$CACHE_DIR"
+RULE_FILE="$CACHE_DIR/$SID.tcp_fix_rule"
+rm -f "$RULE_FILE"
 OLD_PORT_FILE="$CACHE_DIR/$SID.old_port"
 PORT_FILE="/tmp/natmap_qb_outer_port"
+UDP_STATE_FILE="/tmp/natmap_qb_udp_state"
 
 [ "$(uci -q get advanced.global.enable_natmap)" != "1" ] && exit 0
 
@@ -25,7 +29,6 @@ if [ -f "$OLD_PORT_FILE" ]; then
     OLD_PORT=$(cat "$OLD_PORT_FILE")
     if [ -n "$OLD_PORT" ] && [ "$OLD_PORT" != "$OUTER_PORT" ]; then
         nft delete element inet bypass_logic qb_dynamic_ports { "$OLD_PORT" } 2>/dev/null
-        logger -t natmap_bypass "Cleaned old port: $OLD_PORT for $SID"
     fi
 fi
 echo "$OUTER_PORT" > "$OLD_PORT_FILE"
@@ -34,23 +37,35 @@ nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT timeout 24h }"
 nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT timeout 24h }" 2>/dev/null
 
 if [ "$PROTOCOL" = "udp" ]; then
+    echo "${PUBLIC_IP}|${OUTER_PORT}" > "$UDP_STATE_FILE"
     echo "$OUTER_PORT" > "$PORT_FILE"
 elif [ "$PROTOCOL" = "tcp" ]; then
-    local RETRY=10
-    while [ ! -f "$PORT_FILE" ] && [ "$RETRY" -gt 0 ]; do
-        logger -t natmap_bypass "QB_FIX: TCP mapping ready, but UDP port file missing. Waiting... ($RETRY)"
+    RETRY=60
+    VALID_UDP_PORT=""
+    while [ "$RETRY" -gt 0 ]; do
+        if [ -f "$UDP_STATE_FILE" ]; then
+            CONTENT=$(cat "$UDP_STATE_FILE")
+            FILE_IP=$(echo "$CONTENT" | cut -d'|' -f1)
+            FILE_PORT=$(echo "$CONTENT" | cut -d'|' -f2)
+            if [ "$FILE_IP" = "$PUBLIC_IP" ]; then
+                VALID_UDP_PORT="$FILE_PORT"
+                break
+            fi
+        fi
         sleep 1
         RETRY=$((RETRY - 1))
     done
-    if [ -f "$PORT_FILE" ]; then
-        UDP_MASTER_PORT=$(cat "$PORT_FILE")
-        if [ -n "$UDP_MASTER_PORT" ] && [ "$OUTER_PORT" != "$UDP_MASTER_PORT" ]; then
+
+    if [ -n "$VALID_UDP_PORT" ]; then
+        if [ "$OUTER_PORT" != "$VALID_UDP_PORT" ]; then
             REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
             if [ -n "$REAL_TARGET_IP" ]; then
-                RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$UDP_MASTER_PORT"
+                RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$VALID_UDP_PORT"
                 nft "add rule inet bypass_logic qb_fix $RULE" 2>/dev/null
-                echo "$RULE" > "$CACHE_DIR/$SID.tcp_fix_rule"
+                echo "$RULE" > "$RULE_FILE"
             fi
         fi
+    else
+        logger -t natmap_bypass "Error: TCP alignment timed out after 60s for $SID"
     fi
 fi
