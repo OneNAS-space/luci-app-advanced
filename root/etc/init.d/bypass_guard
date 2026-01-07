@@ -50,49 +50,70 @@ setup_nft() {
     local psw_online=$(nft list table inet passwall2 >/dev/null 2>&1 && echo 1 || echo 0)
 
     nft add table inet bypass_logic 2>/dev/null
-    nft flush chain inet bypass_logic prerouting 2>/dev/null || \
-    nft "add chain inet bypass_logic prerouting { type filter hook prerouting priority -400; policy accept; }"
+
+    if ! nft list chain inet bypass_logic static_privilege >/dev/null 2>&1; then
+        nft "add chain inet bypass_logic static_privilege { type filter hook prerouting priority -410; policy accept; }"
+    fi
+
+    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }"
+    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }"
+    nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }"
+
+    if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-tcp-Direct"; then
+        nft add rule inet bypass_logic static_privilege ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-udp-Direct"; then
+        nft add rule inet bypass_logic static_privilege ip saddr @quic_direct_clients udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-udp-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "CF-Tunnel6-tcp-Direct"; then
+        nft add rule inet bypass_logic static_privilege ip6 saddr @quic_direct_clients6 tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-tcp-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "CF-Tunnel6-udp-Direct"; then
+        nft add rule inet bypass_logic static_privilege ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-UDP-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-tcp-dport-Direct"; then
+        nft add rule inet bypass_logic static_privilege tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-tcp-sport-Direct"; then
+        nft add rule inet bypass_logic static_privilege tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-sport-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-udp-dport-Direct"; then
+        nft add rule inet bypass_logic static_privilege udp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-dport-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-udp-sport-Direct"; then
+        nft add rule inet bypass_logic static_privilege udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-sport-Direct"
+    fi
+
+    nft flush chain inet bypass_logic dynamic_logic 2>/dev/null || \
+    nft "add chain inet bypass_logic dynamic_logic { type filter hook prerouting priority -400; policy accept; }"
     nft flush chain inet bypass_logic qb_fix 2>/dev/null || \
     nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }"
 
     nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }"
     nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; flags timeout; }"
-    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }"
-    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }"
-    nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }"
 
-    nft add rule inet bypass_logic prerouting tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
-    nft add rule inet bypass_logic prerouting tcp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-sport-Direct"
-    nft add rule inet bypass_logic prerouting udp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-dport-Direct"
-    nft add rule inet bypass_logic prerouting udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-sport-Direct"
-
-    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
-    nft add rule inet bypass_logic prerouting ip saddr @quic_direct_clients udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-udp-Direct"
-    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-tcp-Direct"
-    nft add rule inet bypass_logic prerouting ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-UDP-Direct"
-
-    nft add rule inet bypass_logic prerouting fib daddr type local counter return comment "Local-Fix"
+    nft add rule inet bypass_logic dynamic_logic fib daddr type local counter return comment "Local-Fix"
     local lan_addr=$(uci -q get network.lan.ipaddr)
     case "$lan_addr" in
         */*) ;; 
         *) lan_addr="${lan_addr}/24" ;;
     esac
-    nft add rule inet bypass_logic prerouting ip daddr "$lan_addr" counter return comment "Loopback-Fix"
+    nft add rule inet bypass_logic dynamic_logic ip daddr "$lan_addr" counter return comment "Loopback-Fix"
 
     local lan_addr6=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | head -n1)
     if [ -n "$lan_addr6" ]; then
-        nft add rule inet bypass_logic prerouting ip6 daddr "$lan_addr6" counter return comment "Loopback-v6-Fix"
+        nft add rule inet bypass_logic dynamic_logic ip6 daddr "$lan_addr6" counter return comment "Loopback-v6-Fix"
     fi
 
     if [ "$is_broken" -eq 0 ] && [ "$psw_online" -eq 1 ]; then
-        nft add rule inet bypass_logic prerouting ip saddr @psw_vpn_clients counter meta mark set 0 accept comment "AGENT-PASS"
-        nft add rule inet bypass_logic prerouting ip6 saddr @psw_vpn_clients6 counter meta mark set 0 accept comment "AGENT-PASS-V6"
+        nft add rule inet bypass_logic dynamic_logic ip saddr @psw_vpn_clients counter meta mark set 0 accept comment "AGENT-PASS"
+        nft add rule inet bypass_logic dynamic_logic ip6 saddr @psw_vpn_clients6 counter meta mark set 0 accept comment "AGENT-PASS-V6"
         logger -t bypass_guard "🚀 Mode: [PROXY] - Redirecting VPN clients to PassWall2 ✅"
     else
         logger -t bypass_guard "🛡️ Mode: [BYPASS] - PassWall2 is unavailable ⚠️"
     fi
 
-    nft add rule inet bypass_logic prerouting iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
+    nft add rule inet bypass_logic dynamic_logic iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
     if is_chains_ready; then
         remove_bypass_rules
@@ -127,9 +148,9 @@ sync_clients() {
         local ips=$(uci -q get dhcp.$section.ip)
         for ip in $ips; do
             [ -z "$ip" ] && continue
-            nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 24h }"
+            nft "add element inet bypass_logic psw_vpn_clients { $ip }"
             # If it is a server, join the QUIC direct whitelist.
-            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 24h }"
+            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip }"
         done
 
         # --- Handle MAC neighbor synchronization (including IPv6) ---
@@ -138,11 +159,11 @@ sync_clients() {
             local active_ips=$(ip neigh show | grep -i "$mac" | grep -E "REACHABLE|STALE|DELAY" | awk '{print $1}' | grep -v '^fe80')
             for ip in $active_ips; do
                 if echo "$ip" | grep -q ':'; then
-                    nft "add element inet bypass_logic psw_vpn_clients6 { $ip timeout 24h }" 2>/dev/null
-                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $ip timeout 24h }" 2>/dev/null
+                    nft "add element inet bypass_logic psw_vpn_clients6 { $ip timeout 4h }" 2>/dev/null
+                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $ip timeout 4h }" 2>/dev/null
                 else
-                    nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 24h }" 2>/dev/null
-                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 24h }" 2>/dev/null
+                    nft "add element inet bypass_logic psw_vpn_clients { $ip }" 2>/dev/null
+                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip }" 2>/dev/null
                 fi
             done
         done
@@ -152,35 +173,45 @@ sync_clients() {
         if [ -n "$v6_prefix" ] && [ -n "$hid" ]; then
             hid=$(echo $hid | sed 's/^://')
             local v6_fixed="${v6_prefix}::${hid}"
-            nft "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed timeout 24h }" 2>/dev/null
-            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $v6_fixed timeout 24h }" 2>/dev/null
+            nft "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed }" 2>/dev/null
+            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $v6_fixed }" 2>/dev/null
         fi
     done
     logger -t bypass_guard "Sync: Updated VPN and Server (QUIC-Direct) clients."
 }
 
 sync_natmap() {
-    if [ -f "/tmp/natmap_qb_outer_port" ]; then
-        local p=$(cat /tmp/natmap_qb_outer_port)
+    local qb_port_file="/tmp/natmap_qb_outer_port"
+    if [ -f "$qb_port_file" ]; then
+        local p=$(cat "$qb_port_file")
         if [ -n "$p" ]; then
-            nft "add element inet bypass_logic qb_dynamic_ports { $p timeout 24h }" 2>/dev/null
-            logger -t bypass_guard "Sync: Restored cached Outer Port $p from /tmp/natmap_qb_outer_port"
+            nft "add element inet bypass_logic qb_dynamic_ports { $p }" 2>/dev/null
+            logger -t bypass_guard "Sync: Restored cached Outer Port $p"
         fi
     else
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
     fi
 
     local cache_dir="/tmp/natmap_cache"
-    nft flush chain inet bypass_logic qb_fix 2>/dev/null
+    local nft_cmd="flush chain inet bypass_logic qb_fix"
+    local has_rules=0
     if [ -d "$cache_dir" ]; then
         for rule_file in "$cache_dir"/*.tcp_fix_rule; do
             [ -e "$rule_file" ] || continue
             local rule_content=$(cat "$rule_file")
             if [ -n "$rule_content" ]; then
-                nft "add rule inet bypass_logic qb_fix $rule_content" 2>/dev/null
-                logger -t bypass_guard "Sync: Restored TCP Redirect rule: $rule_content"
+                nft_cmd="$nft_cmd
+                add rule inet bypass_logic qb_fix $rule_content"
+                has_rules=1
             fi
         done
+    fi
+
+    if [ "$has_rules" -eq 1 ]; then
+        echo "$nft_cmd" | nft -f -
+        logger -t bypass_guard "Sync: Atomic restored TCP Redirect rules ✅"
+    else
+        nft flush chain inet bypass_logic qb_fix 2>/dev/null
     fi
 }
 
