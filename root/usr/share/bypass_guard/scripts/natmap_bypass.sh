@@ -10,7 +10,6 @@ SID="$7"
 CACHE_DIR="/tmp/natmap_cache"
 mkdir -p "$CACHE_DIR"
 RULE_FILE="$CACHE_DIR/$SID.tcp_fix_rule"
-rm -f "$RULE_FILE"
 OLD_PORT_FILE="$CACHE_DIR/$SID.old_port"
 PORT_FILE="/tmp/natmap_qb_outer_port"
 UDP_STATE_FILE="/tmp/natmap_qb_udp_state"
@@ -23,7 +22,6 @@ fi
 
 nft add table inet bypass_logic 2>/dev/null
 nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
-nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
 
 if [ -f "$OLD_PORT_FILE" ]; then
     OLD_PORT=$(cat "$OLD_PORT_FILE")
@@ -33,8 +31,8 @@ if [ -f "$OLD_PORT_FILE" ]; then
 fi
 echo "$OUTER_PORT" > "$OLD_PORT_FILE"
 
-nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT timeout 24h }" 2>/dev/null
-nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT timeout 24h }" 2>/dev/null
+nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT }" 2>/dev/null
+nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT }" 2>/dev/null
 
 if [ "$PROTOCOL" = "udp" ]; then
     echo "${PUBLIC_IP}|${OUTER_PORT}" > "$UDP_STATE_FILE"
@@ -57,6 +55,7 @@ elif [ "$PROTOCOL" = "tcp" ]; then
     done
 
     if [ -n "$VALID_UDP_PORT" ]; then
+        rm -f "$RULE_FILE"
         if [ "$OUTER_PORT" != "$VALID_UDP_PORT" ]; then
             REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
             if [ -n "$REAL_TARGET_IP" ]; then
