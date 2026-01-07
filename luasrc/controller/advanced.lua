@@ -270,28 +270,32 @@ function action_guard_data()
     local all_nft = sys.exec("nft -p list table inet bypass_logic 2>/dev/null") or ""
 
     if all_nft ~= "" then
-        local prerouting_block = all_nft:match("chain prerouting%s+{(.-)}") or ""
-        for packets, bytes, comment in prerouting_block:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
-            local friendly_action = "—"
-            if comment:find("Direct") then
-                if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
-                elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
-                else friendly_action = translate("Direct / Bypass")
+        local blocks = {}
+        table.insert(blocks, all_nft:match("chain static_privilege%s+{(.-)}") or "")
+        table.insert(blocks, all_nft:match("chain dynamic_logic%s+{(.-)}") or "")
+        for _, block_content in ipairs(blocks) do
+            for packets, bytes, comment in block_content:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+                local friendly_action = "—"
+                if comment:find("Direct") then
+                    if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
+                    elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
+                    else friendly_action = translate("Direct / Bypass")
+                    end
+                elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
+                elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
+                elseif comment:find("Fix") or comment:find("Loopback") then
+                    if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
+                    elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
+                    else friendly_action = translate("System / Routing Fix")
+                    end
                 end
-            elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
-            elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
-            elseif comment:find("Fix") or comment:find("Loopback") then
-                if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
-                elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
-                else friendly_action = translate("System / Routing Fix")
-                end
+                table.insert(rv.rules, {
+                    name    = comment,
+                    packets = packets,
+                    bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+                    comment = friendly_action
+                })
             end
-            table.insert(rv.rules, {
-                name    = comment,
-                packets = packets,
-                bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
-                comment = friendly_action
-            })
         end
 
         local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
