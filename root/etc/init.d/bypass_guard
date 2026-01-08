@@ -180,12 +180,59 @@ sync_clients() {
     logger -t bypass_guard "Sync: Updated VPN and Server (QUIC-Direct) clients."
 }
 
-sync_natmap() {
+manage_natmap() {
+    local natmap_en="$1"
+    local script_path="/usr/share/bypass_guard/scripts/natmap_bypass.sh"
+    local cache_dir="/tmp/natmap_cache"
+    local qb_port_file="/tmp/natmap_qb_outer_port"
+
     if ! nft list chain inet bypass_logic qb_fix >/dev/null 2>&1; then
         nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
     fi
 
-    local qb_port_file="/tmp/natmap_qb_outer_port"
+    if [ "$natmap_en" -ne 1 ]; then
+        local changed=0
+        config_load natmap
+        do_detach() {
+            local section="$1"
+            local comment current
+            config_get comment "$section" "comment"
+            [ "$comment" = "qBittorrent" ] || return 0
+            config_get current "$section" "custom_script"
+            if [ "$current" = "$script_path" ]; then
+                uci set natmap."$section".custom_script=""
+                changed=1
+            fi
+        }
+        config_foreach do_detach natmap
+        if [ "$changed" -eq 1 ]; then
+            uci commit natmap
+            /etc/init.d/natmap reload
+        fi
+
+        nft flush chain inet bypass_logic qb_fix 2>/dev/null
+        return 0
+    fi
+
+    local changed=0
+    config_load natmap
+    do_attach() {
+        local section="$1"
+        local comment current
+        config_get comment "$section" "comment"
+        [ "$comment" = "qBittorrent" ] || return 0
+        config_get current "$section" "custom_script"
+        if [ "$current" != "$script_path" ]; then
+            uci set natmap."$section".custom_script="$script_path"
+            changed=1
+        fi
+    }
+    config_foreach do_attach natmap
+    if [ "$changed" -eq 1 ]; then
+        uci commit natmap
+        /etc/init.d/natmap reload
+    fi
+
     if [ -f "$qb_port_file" ]; then
         local p=$(cat "$qb_port_file")
         if [ -n "$p" ]; then
@@ -196,9 +243,9 @@ sync_natmap() {
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
     fi
 
-    local cache_dir="/tmp/natmap_cache"
     local nft_cmd="flush chain inet bypass_logic qb_fix"
     local has_rules=0
+
     if [ -d "$cache_dir" ]; then
         for rule_file in "$cache_dir"/*.tcp_fix_rule; do
             [ -e "$rule_file" ] || continue
@@ -222,13 +269,13 @@ sync_natmap() {
 refresh_nft() {
     setup_nft
     sync_clients
-    sync_natmap
 }
 
 start_service() {
-    local enabled
+    local enabled natmap_en
     config_load "$CONF"
     config_get_bool enabled "$SECTION" "enable_bypass" 0
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
 
     if [ "$enabled" -eq 0 ]; then
         logger -t bypass_guard "Service disabled in config. Exiting."
@@ -237,6 +284,7 @@ start_service() {
     fi
 
     refresh_nft
+    manage_natmap "$natmap_en"
 
     procd_open_instance "psw_monitor"
     procd_set_param command /bin/sh -c '
@@ -264,13 +312,21 @@ start_service() {
 }
 
 stop_service() {
+    local natmap_en
+    config_load "$CONF"
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
     remove_bypass_rules
     nft delete table inet bypass_logic 2>/dev/null
     rm -f "$PSW_DEAD_FLAG"
+    [ "$natmap_en" -eq 1 ] && manage_natmap 0
 }
 
 reload_service() {
+    local natmap_en
+    config_load "$CONF"
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
     refresh_nft
+    manage_natmap "$natmap_en"
 }
 
 service_triggers() {
