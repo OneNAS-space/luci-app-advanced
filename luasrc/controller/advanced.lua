@@ -293,6 +293,7 @@ function action_guard_data()
                     name    = comment,
                     packets = packets,
                     bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+                    bytes_raw = bytes,
                     comment = friendly_action
                 })
             end
