@@ -285,6 +285,8 @@ start_service() {
         return 0
     fi
 
+    rm -f "$PSW_DEAD_FLAG"
+    logger -t bypass_guard "DEBUG: refresh_nft triggered by [INIT_START]"
     refresh_nft
     manage_natmap "$natmap_en"
 
@@ -295,14 +297,14 @@ start_service() {
             if curl -sk --retry 1 --connect-timeout 2 -I https://www.google.com -o /dev/null; then
                 if [ -f "/tmp/psw_dead" ]; then
                     rm -f "/tmp/psw_dead"
-                    /etc/init.d/bypass_guard reload
+                    /etc/init.d/bypass_guard refresh_nft "MONITOR_RECOVERY"
                 fi
                 fail_cnt=0
             else
                 fail_cnt=$((fail_cnt + 1))
                 if [ "$fail_cnt" -ge 3 ] && [ ! -f "/tmp/psw_dead" ]; then
                     touch "/tmp/psw_dead"
-                    /etc/init.d/bypass_guard reload
+                    /etc/init.d/bypass_guard refresh_nft "MONITOR_FAILED"
                 fi
             fi
             sleep 3
@@ -327,6 +329,7 @@ reload_service() {
     local natmap_en
     config_load "$CONF"
     config_get_bool natmap_en "$SECTION" "enable_natmap" 0
+    logger -t bypass_guard "DEBUG: refresh_nft triggered by [RELOAD_FUNC]"
     refresh_nft
     manage_natmap "$natmap_en"
 }
