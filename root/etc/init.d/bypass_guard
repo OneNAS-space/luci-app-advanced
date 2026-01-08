@@ -163,7 +163,7 @@ sync_clients() {
                     nft "add element inet bypass_logic psw_vpn_clients6 { $ip timeout 4h }" 2>/dev/null
                     [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $ip timeout 4h }" 2>/dev/null
                 else
-                    nft "add element inet bypass_logic psw_vpn_clients { $ip }" 2>/dev/null
+                    nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }" 2>/dev/null
                     [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }" 2>/dev/null
                 fi
             done
