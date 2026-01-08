@@ -14,7 +14,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 <div class="cbi-value" style="margin-top: 1rem;">
     <label class="cbi-value-title"><strong><%=translate("Natmap qB-port Direct")%></strong></label>
     <div class="cbi-value-field">
-        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
         <br />
         <div class="cbi-value-description">
             <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
@@ -164,10 +164,13 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
     function updateNatmapConfig(isChecked) {
         var cb = document.getElementById('natmap_enable_cb');
+        var desc = document.getElementById('natmap_desc');
         var val = isChecked ? '1' : '0';
         if (cb) cb.disabled = true;
+        if (desc) desc.innerHTML = '<%:Saving...%>';
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
             if (cb) cb.disabled = false;
+            if (desc) desc.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%>';
             if (!data || data.code !== 0) {
                 alert('<%:Config Update Failed%>');
                 if (cb) cb.checked = !isChecked;
