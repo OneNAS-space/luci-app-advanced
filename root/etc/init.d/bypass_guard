@@ -34,6 +34,9 @@ inject_bypass_rule() {
     local chain="$1"
     local comment="Bypass-Global-Mark"
     local retries=3
+    if nft list chain inet "$table" "$chain" 2>/dev/null | grep -E "Bypass-Global-Mark"; then
+        return 0
+    fi
     while [ $retries -gt 0 ]; do
         if nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "$comment" 2>/dev/null; then
             return 0
@@ -50,14 +53,13 @@ setup_nft() {
     local psw_online=$(nft list table inet passwall2 >/dev/null 2>&1 && echo 1 || echo 0)
 
     nft add table inet bypass_logic 2>/dev/null
-
     if ! nft list chain inet bypass_logic static_privilege >/dev/null 2>&1; then
-        nft "add chain inet bypass_logic static_privilege { type filter hook prerouting priority -410; policy accept; }"
+        nft "add chain inet bypass_logic static_privilege { type filter hook prerouting priority -410; policy accept; }" 2>/dev/null
     fi
 
-    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }"
-    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }"
-    nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }"
+    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
 
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-tcp-Direct"; then
         nft add rule inet bypass_logic static_privilege ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
@@ -84,21 +86,29 @@ setup_nft() {
         nft add rule inet bypass_logic static_privilege udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-sport-Direct"
     fi
 
-    nft flush chain inet bypass_logic dynamic_logic 2>/dev/null || \
-    nft "add chain inet bypass_logic dynamic_logic { type filter hook prerouting priority -400; policy accept; }"
-    nft flush chain inet bypass_logic qb_fix 2>/dev/null || \
-    nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }"
+    nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; flags timeout; }" 2>/dev/null
 
-    nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }"
-    nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; flags timeout; }"
+    if ! nft list chain inet bypass_logic dynamic_logic >/dev/null 2>&1; then
+        nft "add chain inet bypass_logic dynamic_logic { type filter hook prerouting priority -400; policy accept; }"
+    fi
+
+    nft flush chain inet bypass_logic dynamic_logic
+
+    if ! nft list chain inet bypass_logic qb_fix >/dev/null 2>&1; then
+        nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }"
+    fi
 
     nft add rule inet bypass_logic dynamic_logic fib daddr type local counter return comment "Local-Fix"
+
     local lan_addr=$(uci -q get network.lan.ipaddr)
-    case "$lan_addr" in
-        */*) ;; 
-        *) lan_addr="${lan_addr}/24" ;;
-    esac
-    nft add rule inet bypass_logic dynamic_logic ip daddr "$lan_addr" counter return comment "Loopback-Fix"
+    if [ -n "$lan_addr" ]; then
+        case "$lan_addr" in
+            */*) ;; 
+            *) lan_addr="${lan_addr}/24" ;;
+        esac
+        nft add rule inet bypass_logic dynamic_logic ip daddr "$lan_addr" counter return comment "Loopback-Fix"
+    fi
 
     local lan_addr6=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | head -n1)
     if [ -n "$lan_addr6" ]; then
@@ -116,22 +126,19 @@ setup_nft() {
     nft add rule inet bypass_logic dynamic_logic iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
     if is_chains_ready; then
+        if nft list chain inet passwall2 mangle_prerouting 2>/dev/null | grep -q "Bypass-Global-Mark" && \
+            nft list chain inet passwall2 dstnat 2>/dev/null | grep -q "Bypass-Global-Mark"; then
+            return 0
+        fi
         remove_bypass_rules
         local success=0
         inject_bypass_rule "mangle_prerouting" && success=$((success + 1))
         inject_bypass_rule "dstnat" && success=$((success + 1))
         [ "$success" -eq 2 ] && logger -t bypass_guard "💉 Successfully injected all bypass rules into PassWall2 💥"
-    else
-        return 0
     fi
 }
 
 sync_clients() {
-    nft flush set inet bypass_logic psw_vpn_clients 2>/dev/null
-    nft flush set inet bypass_logic psw_vpn_clients6 2>/dev/null
-    nft flush set inet bypass_logic quic_direct_clients 2>/dev/null
-    nft flush set inet bypass_logic quic_direct_clients6 2>/dev/null
-
     local vpn_sections=$(uci show dhcp | grep "@host" | grep "\.tag" | grep -i "VPN" | cut -d. -f2 | sort -u)
     local v6_prefix=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | cut -d: -f1-4 | head -n1)
 
@@ -143,17 +150,13 @@ sync_clients() {
     for section in $vpn_sections; do
         local tags=$(uci -q get dhcp.$section.tag)
         local is_server=$(echo "$tags" | grep -iw "server")
-
-        # --- Processing IPv4 ---
         local ips=$(uci -q get dhcp.$section.ip)
         for ip in $ips; do
             [ -z "$ip" ] && continue
-            nft "add element inet bypass_logic psw_vpn_clients { $ip }"
-            # If it is a server, join the QUIC direct whitelist.
-            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip }"
+            nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
+            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
         done
 
-        # --- Handle MAC neighbor synchronization (including IPv6) ---
         local macs=$(uci -q get "dhcp.$section.mac")
         for mac in $macs; do
             local active_ips=$(ip neigh show | grep -i "$mac" | grep -E "REACHABLE|STALE|DELAY" | awk '{print $1}' | grep -v '^fe80')
@@ -162,26 +165,76 @@ sync_clients() {
                     nft "add element inet bypass_logic psw_vpn_clients6 { $ip timeout 4h }" 2>/dev/null
                     [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $ip timeout 4h }" 2>/dev/null
                 else
-                    nft "add element inet bypass_logic psw_vpn_clients { $ip }" 2>/dev/null
-                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip }" 2>/dev/null
+                    nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }" 2>/dev/null
+                    [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }" 2>/dev/null
                 fi
             done
         done
 
-        # --- Processing IPv6 HostID ---
         local hid=$(uci -q get dhcp.$section.hostid)
         if [ -n "$v6_prefix" ] && [ -n "$hid" ]; then
             hid=$(echo $hid | sed 's/^://')
             local v6_fixed="${v6_prefix}::${hid}"
-            nft "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed }" 2>/dev/null
-            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $v6_fixed }" 2>/dev/null
+            nft "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed timeout 4h }" 2>/dev/null
+            [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $v6_fixed timeout 4h }" 2>/dev/null
         fi
     done
     logger -t bypass_guard "Sync: Updated VPN and Server (QUIC-Direct) clients."
 }
 
-sync_natmap() {
+manage_natmap() {
+    local natmap_en="$1"
+    local script_path="/usr/share/bypass_guard/scripts/natmap_bypass.sh"
+    local cache_dir="/tmp/natmap_cache"
     local qb_port_file="/tmp/natmap_qb_outer_port"
+
+    if ! nft list chain inet bypass_logic qb_fix >/dev/null 2>&1; then
+        nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
+    fi
+
+    if [ "$natmap_en" -ne 1 ]; then
+        local changed=0
+        config_load natmap
+        do_detach() {
+            local section="$1"
+            local comment current
+            config_get comment "$section" "comment"
+            [ "$comment" = "qBittorrent" ] || return 0
+            config_get current "$section" "custom_script"
+            if [ "$current" = "$script_path" ]; then
+                uci set natmap."$section".custom_script=""
+                changed=1
+            fi
+        }
+        config_foreach do_detach natmap
+        if [ "$changed" -eq 1 ]; then
+            uci commit natmap
+            /etc/init.d/natmap reload
+        fi
+
+        nft flush chain inet bypass_logic qb_fix 2>/dev/null
+        return 0
+    fi
+
+    local changed=0
+    config_load natmap
+    do_attach() {
+        local section="$1"
+        local comment current
+        config_get comment "$section" "comment"
+        [ "$comment" = "qBittorrent" ] || return 0
+        config_get current "$section" "custom_script"
+        if [ "$current" != "$script_path" ]; then
+            uci set natmap."$section".custom_script="$script_path"
+            changed=1
+        fi
+    }
+    config_foreach do_attach natmap
+    if [ "$changed" -eq 1 ]; then
+        uci commit natmap
+        /etc/init.d/natmap reload
+    fi
+
     if [ -f "$qb_port_file" ]; then
         local p=$(cat "$qb_port_file")
         if [ -n "$p" ]; then
@@ -192,9 +245,9 @@ sync_natmap() {
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
     fi
 
-    local cache_dir="/tmp/natmap_cache"
     local nft_cmd="flush chain inet bypass_logic qb_fix"
     local has_rules=0
+
     if [ -d "$cache_dir" ]; then
         for rule_file in "$cache_dir"/*.tcp_fix_rule; do
             [ -e "$rule_file" ] || continue
@@ -218,13 +271,13 @@ sync_natmap() {
 refresh_nft() {
     setup_nft
     sync_clients
-    sync_natmap
 }
 
 start_service() {
-    local enabled
+    local enabled natmap_en
     config_load "$CONF"
     config_get_bool enabled "$SECTION" "enable_bypass" 0
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
 
     if [ "$enabled" -eq 0 ]; then
         logger -t bypass_guard "Service disabled in config. Exiting."
@@ -232,9 +285,8 @@ start_service() {
         return 0
     fi
 
-    setup_nft
-    sync_clients
-    sync_natmap
+    refresh_nft
+    manage_natmap "$natmap_en"
 
     procd_open_instance "psw_monitor"
     procd_set_param command /bin/sh -c '
@@ -262,13 +314,21 @@ start_service() {
 }
 
 stop_service() {
+    local natmap_en
+    config_load "$CONF"
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
     remove_bypass_rules
     nft delete table inet bypass_logic 2>/dev/null
     rm -f "$PSW_DEAD_FLAG"
+    [ "$natmap_en" -eq 1 ] && manage_natmap 0
 }
 
 reload_service() {
+    local natmap_en
+    config_load "$CONF"
+    config_get_bool natmap_en "$SECTION" "enable_natmap" 0
     refresh_nft
+    manage_natmap "$natmap_en"
 }
 
 service_triggers() {

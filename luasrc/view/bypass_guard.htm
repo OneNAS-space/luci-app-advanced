@@ -14,7 +14,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 <div class="cbi-value" style="margin-top: 1rem;">
     <label class="cbi-value-title"><strong><%=translate("Natmap qB-port Direct")%></strong></label>
     <div class="cbi-value-field">
-        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" <% if not is_running then %>disabled="disabled"<% end %> />
+        <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
         <br />
         <div class="cbi-value-description">
             <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
@@ -66,11 +66,17 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
 <style>
     .label { font-weight: bold; font-size: 0.9em; }
-    #clients_table code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+    #clients_table code { padding: 2px 4px; border-radius: 3px; }
 </style>
 
 <script type="text/javascript">//<![CDATA[
     <% if is_running then %>
+    var last_bytes_map = {};
+    function renderBytes(bytes) {
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + " MiB";
+        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + " KiB";
+        return bytes.toFixed(0) + " B";
+    }
     XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
         function(x, data) {
             var tb = document.getElementById('bypass_status_table');
@@ -83,8 +89,27 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = r.name
                         tr.insertCell(-1).innerHTML = r.packets;
-                        tr.insertCell(-1).innerHTML = r.bytes;
-                        tr.insertCell(-1).innerHTML = '<small>' + r.comment + '</small>';
+                        var current_bytes = parseFloat(r.bytes_raw) || 0;
+                        var speed_text = "";
+                        if (last_bytes_map[r.name] !== undefined) {
+                            var diff = (current_bytes - last_bytes_map[r.name]) / 5;
+                            if (diff > 0) {
+                                speed_text = ' <span style="color:#0069d6; font-size:0.8em; font-weight:bold;">↑ ' + renderBytes(diff) + '/s</span>';
+                            }
+                        }
+                        last_bytes_map[r.name] = current_bytes;
+                        tr.insertCell(-1).innerHTML = r.bytes + speed_text;
+                        var actionHtml = '';
+                        if (r.comment.indexOf('Direct') > -1) {
+                            actionHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
+                        } else if (r.comment.indexOf('Proxy') > -1 || r.comment.indexOf('Agent') > -1) {
+                            actionHtml = '<span class="label" style="background-color:#0069d6; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
+                        } else if (r.comment.indexOf('NAT') > -1) {
+                            actionHtml = '<span class="label" style="background-color:#d9822b; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
+                        } else {
+                            actionHtml = '<small>' + r.comment + '</small>';
+                        }
+                        tr.insertCell(-1).innerHTML = actionHtml;
                     }
                 } else {
                     while (tb.rows.length > 1) tb.deleteRow(1);
@@ -104,9 +129,9 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var tr = tc.insertRow(-1);
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = c.hostname ? c.hostname : '<em>unknown</em>';
-                        tr.insertCell(-1).innerHTML = '<code>' + (c.mac || '—') + '</code>';
+                        tr.insertCell(-1).innerHTML = (c.mac || '—');
                         var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
-                        tr.insertCell(-1).innerHTML = '<code ' + ipStyle + '>' + c.ip + '</code>';
+                        tr.insertCell(-1).innerHTML = '<span ' + ipStyle + '>' + c.ip + '</span>';
                         tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
                         var roleHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 4px; border-radius:3px;">VPN</span>';
                         if (c.is_server) {
@@ -139,10 +164,13 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
     function updateNatmapConfig(isChecked) {
         var cb = document.getElementById('natmap_enable_cb');
+        var desc = document.getElementById('natmap_desc');
         var val = isChecked ? '1' : '0';
         if (cb) cb.disabled = true;
+        if (desc) desc.innerHTML = '<%:Saving...%>';
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "set_natmap")%>', { set: val }, function(x, data) {
             if (cb) cb.disabled = false;
+            if (desc) desc.innerHTML = '<%=translate("Update firewall rules automatically when Natmap port changes.")%>';
             if (!data || data.code !== 0) {
                 alert('<%:Config Update Failed%>');
                 if (cb) cb.checked = !isChecked;
