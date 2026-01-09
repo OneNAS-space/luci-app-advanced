@@ -34,11 +34,16 @@ inject_bypass_rule() {
     local chain="$1"
     local comment="Bypass-Global-Mark"
     local retries=3
-    if nft list chain inet "$table" "$chain" 2>/dev/null | grep -E "Bypass-Global-Mark"; then
+    local first_rule=$(nft -a list chain inet "$table" "$chain" 2>/dev/null | grep -E "handle" | grep -v "chain" | head -n 1)
+    if echo "$first_rule" | grep -q "$comment"; then
         return 0
     fi
     while [ $retries -gt 0 ]; do
         if nft insert rule inet "$table" "$chain" index 0 meta mark "$mark" counter return comment "$comment" 2>/dev/null; then
+            local old_handles=$(nft -a list chain inet "$table" "$chain" 2>/dev/null | grep "$comment" | grep -v "chain" | tail -n +2 | grep -oE 'handle [0-9]+' | awk '{print $2}')
+            for handle in $old_handles; do
+                [ ! -z "$handle" ] && nft delete rule inet "$table" "$chain" handle "$handle" 2>/dev/null
+            done
             return 0
         fi
         retries=$((retries - 1))
