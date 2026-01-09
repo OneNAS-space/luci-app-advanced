@@ -193,6 +193,19 @@ manage_natmap() {
     local cache_dir="/tmp/natmap_cache"
     local qb_port_file="/tmp/natmap_qb_outer_port"
 
+    if [ -d "$cache_dir" ]; then
+        for ext in tcp_fix_rule old_port; do
+            ls -t "$cache_dir"/*."$ext" 2>/dev/null | awk '{
+                line = "cat " $1; line | getline content; close(line);
+                if (content in seen) {
+                    system("rm -f " $1); 
+                } else {
+                    seen[content] = $1;
+                }
+            }' 2>/dev/null
+        done
+    fi
+
     if ! nft list chain inet bypass_logic qb_fix >/dev/null 2>&1; then
         nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
     fi
@@ -240,6 +253,16 @@ manage_natmap() {
         /etc/init.d/natmap reload
     fi
 
+    local unique_rules=$(cat "$cache_dir"/*.tcp_fix_rule 2>/dev/null | sort -u)
+    {
+        echo "flush chain inet bypass_logic qb_fix"
+        if [ -n "$unique_rules" ]; then
+            echo "$unique_rules" | while read -r rule; do
+                [ -n "$rule" ] && echo "add rule inet bypass_logic qb_fix $rule"
+            done
+        fi
+    } | nft -f -
+
     if [ -f "$qb_port_file" ]; then
         local p=$(cat "$qb_port_file")
         if [ -n "$p" ]; then
@@ -248,28 +271,6 @@ manage_natmap() {
         fi
     else
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
-    fi
-
-    local nft_cmd="flush chain inet bypass_logic qb_fix"
-    local has_rules=0
-
-    if [ -d "$cache_dir" ]; then
-        for rule_file in "$cache_dir"/*.tcp_fix_rule; do
-            [ -e "$rule_file" ] || continue
-            local rule_content=$(cat "$rule_file")
-            if [ -n "$rule_content" ]; then
-                nft_cmd="$nft_cmd
-                add rule inet bypass_logic qb_fix $rule_content"
-                has_rules=1
-            fi
-        done
-    fi
-
-    if [ "$has_rules" -eq 1 ]; then
-        echo "$nft_cmd" | nft -f -
-        logger -t bypass_guard "Sync: Atomic restored TCP Redirect rules ✅"
-    else
-        nft flush chain inet bypass_logic qb_fix 2>/dev/null
     fi
 }
 
