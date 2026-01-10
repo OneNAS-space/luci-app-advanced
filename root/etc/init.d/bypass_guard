@@ -104,7 +104,7 @@ setup_nft() {
         nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }"
     fi
 
-    nft add rule inet bypass_logic dynamic_logic fib daddr type local counter return comment "Local-Fix"
+    nft add rule inet bypass_logic dynamic_logic fib daddr type local meta mark != 0xff counter return comment "Local-Fix"
 
     local lan_addr=$(uci -q get network.lan.ipaddr)
     if [ -n "$lan_addr" ]; then
