@@ -31,7 +31,7 @@ if [ -f "$OLD_PORT_FILE" ]; then
 fi
 echo "$OUTER_PORT" > "$OLD_PORT_FILE"
 
-nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT }" 2>/dev/null
+# nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT }" 2>/dev/null
 nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT }" 2>/dev/null
 
 if [ "$PROTOCOL" = "udp" ]; then
