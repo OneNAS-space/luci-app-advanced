@@ -103,7 +103,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var c = r.comment || '';
                         if (c.indexOf('直连') > -1 || c.indexOf('Direct') > -1) {
                             actionHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
-                        } else if (c.indexOf('代理') > -1 || /Proxy|Agent|系统/i.test(c)) {
+                        } else if (c.indexOf('代理') > -1 || /Proxy|Agent/i.test(c)) {
                             actionHtml = '<span class="label" style="background-color:#0069d6; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
                         } else if (c.indexOf('NAT') > -1) {
                             actionHtml = '<span class="label" style="background-color:#d9822b; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
