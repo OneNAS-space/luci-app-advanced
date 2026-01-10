@@ -60,10 +60,10 @@ elif [ "$PROTOCOL" = "tcp" ]; then
             REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
             if [ -n "$REAL_TARGET_IP" ]; then
                 RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$VALID_UDP_PORT"
-                nft "add rule inet bypass_logic qb_fix $RULE" 2>/dev/null
                 echo "$RULE" > "$RULE_FILE"
             fi
         fi
+        /etc/init.d/bypass_guard manage_natmap 1
     else
         logger -t natmap_bypass "Error: TCP alignment timed out after 60s for $SID"
     fi
