@@ -270,18 +270,16 @@ manage_natmap() {
                 [ -n "$rule" ] && echo "add rule inet bypass_logic qb_fix $rule"
             done
         fi
-        if [ -f "$qb_port_file" ]; then
-            local p=$(cat "$qb_port_file")
-            if [ -n "$p" ]; then
-                echo "add element inet bypass_logic qb_dynamic_ports { $p }"
-            fi
-        fi
     } | nft -f - 2>/dev/null
 
     if [ -f "$qb_port_file" ]; then
-        logger -t bypass_guard "Sync: Atomic update qB rules and port $(cat "$qb_port_file")"
+        local p=$(cat "$qb_port_file")
+        if [ -n "$p" ]; then
+            nft "add element inet bypass_logic qb_dynamic_ports { $p }" 2>/dev/null
+            logger -t bypass_guard "Sync: Restored cached Outer Port $p"
+        fi
     else
-        logger -t bypass_guard "Sync: Atomic update qB rules (no cached port)"
+        logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
     fi
 }
 
