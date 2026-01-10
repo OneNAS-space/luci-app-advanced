@@ -63,7 +63,7 @@ setup_nft() {
     fi
 
     nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
-    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; }" 2>/dev/null
     nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
 
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-tcp-Direct"; then
@@ -92,7 +92,7 @@ setup_nft() {
     fi
 
     nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
-    nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; }" 2>/dev/null
 
     if ! nft list chain inet bypass_logic dynamic_logic >/dev/null 2>&1; then
         nft "add chain inet bypass_logic dynamic_logic { type filter hook prerouting priority -400; policy accept; }"
@@ -144,6 +144,8 @@ setup_nft() {
 }
 
 sync_clients() {
+    config_load "$CONF"
+    config_load "dhcp"
     local vpn_sections=$(uci show dhcp | grep "@host" | grep "\.tag" | grep -i "VPN" | cut -d. -f2 | sort -u)
     local v6_prefix=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | cut -d: -f1-4 | head -n1)
 
@@ -163,8 +165,8 @@ sync_clients() {
             local ips=$(uci -q get dhcp.$section.ip)
             for ip in $ips; do
                 [ -z "$ip" ] && continue
-                nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
-                [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
+                echo "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
+                [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
             done
 
             local macs=$(uci -q get "dhcp.$section.mac")
@@ -172,11 +174,11 @@ sync_clients() {
                 local active_ips=$(ip neigh show | grep -i "$mac" | grep -E "REACHABLE|STALE|DELAY" | awk '{print $1}' | grep -v '^fe80')
                 for ip in $active_ips; do
                     if echo "$ip" | grep -q ':'; then
-                        nft "add element inet bypass_logic psw_vpn_clients6 { $ip }" 2>/dev/null
-                        [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $ip }" 2>/dev/null
+                        echo "add element inet bypass_logic psw_vpn_clients6 { $ip }"
+                        [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients6 { $ip }"
                     else
-                        nft "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }" 2>/dev/null
-                        [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }" 2>/dev/null
+                        echo "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
+                        [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
                     fi
                 done
             done
@@ -185,8 +187,8 @@ sync_clients() {
             if [ -n "$v6_prefix" ] && [ -n "$hid" ]; then
                 hid=$(echo $hid | sed 's/^://')
                 local v6_fixed="${v6_prefix}::${hid}"
-                nft "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed }" 2>/dev/null
-                [ -n "$is_server" ] && nft "add element inet bypass_logic quic_direct_clients6 { $v6_fixed }" 2>/dev/null
+                echo "add element inet bypass_logic psw_vpn_clients6 { $v6_fixed }"
+                [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients6 { $v6_fixed }"
             fi
         done
     } | nft -f - 2>/dev/null
@@ -268,16 +270,18 @@ manage_natmap() {
                 [ -n "$rule" ] && echo "add rule inet bypass_logic qb_fix $rule"
             done
         fi
-    } | nft -f -
+        if [ -f "$qb_port_file" ]; then
+            local p=$(cat "$qb_port_file")
+            if [ -n "$p" ]; then
+                echo "add element inet bypass_logic qb_dynamic_ports { $p }"
+            fi
+        fi
+    } | nft -f - 2>/dev/null
 
     if [ -f "$qb_port_file" ]; then
-        local p=$(cat "$qb_port_file")
-        if [ -n "$p" ]; then
-            nft "add element inet bypass_logic qb_dynamic_ports { $p }" 2>/dev/null
-            logger -t bypass_guard "Sync: Restored cached Outer Port $p"
-        fi
+        logger -t bypass_guard "Sync: Atomic update qB rules and port $(cat "$qb_port_file")"
     else
-        logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
+        logger -t bypass_guard "Sync: Atomic update qB rules (no cached port)"
     fi
 }
 
