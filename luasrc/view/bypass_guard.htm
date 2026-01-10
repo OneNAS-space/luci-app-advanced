@@ -100,11 +100,12 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         last_bytes_map[r.name] = current_bytes;
                         tr.insertCell(-1).innerHTML = r.bytes + speed_text;
                         var actionHtml = '';
-                        if (r.comment.indexOf('Direct') > -1) {
+                        var c = r.comment || '';
+                        if (c.indexOf('直连') > -1 || c.indexOf('Direct') > -1) {
                             actionHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
-                        } else if (r.comment.indexOf('Proxy') > -1 || r.comment.indexOf('Agent') > -1) {
+                        } else if (c.indexOf('代理') > -1 || /Proxy|Agent|系统/i.test(c)) {
                             actionHtml = '<span class="label" style="background-color:#0069d6; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
-                        } else if (r.comment.indexOf('NAT') > -1) {
+                        } else if (c.indexOf('NAT') > -1) {
                             actionHtml = '<span class="label" style="background-color:#d9822b; color:white; padding:2px 6px; border-radius:3px; font-size:0.85em;">' + r.comment + '</span>';
                         } else {
                             actionHtml = '<small>' + r.comment + '</small>';
