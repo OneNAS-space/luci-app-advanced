@@ -300,9 +300,8 @@ function action_guard_data()
         end
 
         local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
-        for dport, packets, bytes, target in qb_fix_block:gmatch("dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
-            local is_udp = qb_fix_block:match("udp dport " .. dport) ~= nil
-            local proto_label = is_udp and "UDP" or "TCP"
+        for proto, dport, packets, bytes, target in qb_fix_block:gmatch("(%l+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+            local proto_label = proto:upper()
             table.insert(rv.rules, {
                 name    = proto_label .. "-Fix: " .. dport,
                 packets = packets,
