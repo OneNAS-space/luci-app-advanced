@@ -1,7 +1,6 @@
 #!/bin/sh
 # $1 = Public IP, $2 = Outer Port, $4 = Inner Port, $5 = Protocol, $7 = SID
 
-PUBLIC_IP="$1"
 OUTER_PORT="$2"
 INNER_PORT="$4"
 PROTOCOL="$5"
@@ -12,7 +11,6 @@ mkdir -p "$CACHE_DIR"
 RULE_FILE="$CACHE_DIR/$SID.tcp_fix_rule"
 OLD_PORT_FILE="$CACHE_DIR/$SID.old_port"
 PORT_FILE="/tmp/natmap_qb_outer_port"
-UDP_STATE_FILE="/tmp/natmap_qb_udp_state"
 
 [ "$(uci -q get advanced.global.enable_natmap)" != "1" ] && exit 0
 
@@ -35,36 +33,13 @@ nft "add element inet bypass_logic qb_dynamic_ports { $INNER_PORT }" 2>/dev/null
 nft "add element inet bypass_logic qb_dynamic_ports { $OUTER_PORT }" 2>/dev/null
 
 if [ "$PROTOCOL" = "udp" ]; then
-    echo "${PUBLIC_IP}|${OUTER_PORT}" > "$UDP_STATE_FILE"
     echo "$OUTER_PORT" > "$PORT_FILE"
-elif [ "$PROTOCOL" = "tcp" ]; then
-    RETRY=60
-    VALID_UDP_PORT=""
-    while [ "$RETRY" -gt 0 ]; do
-        if [ -f "$UDP_STATE_FILE" ]; then
-            CONTENT=$(cat "$UDP_STATE_FILE")
-            FILE_IP=$(echo "$CONTENT" | cut -d'|' -f1)
-            FILE_PORT=$(echo "$CONTENT" | cut -d'|' -f2)
-            if [ "$FILE_IP" = "$PUBLIC_IP" ]; then
-                VALID_UDP_PORT="$FILE_PORT"
-                break
-            fi
-        fi
-        sleep 1
-        RETRY=$((RETRY - 1))
-    done
-
-    if [ -n "$VALID_UDP_PORT" ]; then
-        rm -f "$RULE_FILE"
-        if [ "$OUTER_PORT" != "$VALID_UDP_PORT" ]; then
-            REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
-            if [ -n "$REAL_TARGET_IP" ]; then
-                RULE="ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$VALID_UDP_PORT"
-                echo "$RULE" > "$RULE_FILE"
-            fi
-        fi
+    REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
+    if [ -n "$REAL_TARGET_IP" ]; then
+        {
+            echo "ip daddr $REAL_TARGET_IP udp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
+            echo "ip daddr $REAL_TARGET_IP tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
+        } > "$RULE_FILE"
         /etc/init.d/bypass_guard manage_natmap 1
-    else
-        logger -t natmap_bypass "Error: TCP alignment timed out after 60s for $SID"
     fi
 fi
