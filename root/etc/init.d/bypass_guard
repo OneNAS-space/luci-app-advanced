@@ -200,7 +200,7 @@ manage_natmap() {
     local natmap_en="$1"
     local script_path="/usr/share/bypass_guard/scripts/natmap_bypass.sh"
     local cache_dir="/tmp/natmap_cache"
-    local qb_port_file="/tmp/natmap_qb_outer_port"
+    local qb_port_file="/tmp/natmap_qb_inner_port"
 
     if [ -d "$cache_dir" ]; then
         for ext in tcp_fix_rule old_port; do
@@ -276,7 +276,7 @@ manage_natmap() {
         local p=$(cat "$qb_port_file")
         if [ -n "$p" ]; then
             nft "add element inet bypass_logic qb_dynamic_ports { $p }" 2>/dev/null
-            logger -t bypass_guard "Sync: Restored cached Outer Port $p"
+            logger -t bypass_guard "Sync: Restored cached qB Port $p"
         fi
     else
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
