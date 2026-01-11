@@ -301,8 +301,10 @@ function action_guard_data()
 
         local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
         for dport, packets, bytes, target in qb_fix_block:gmatch("dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+            local is_udp = qb_fix_block:match("udp dport " .. dport) ~= nil
+            local proto_label = is_udp and "UDP" or "TCP"
             table.insert(rv.rules, {
-                name    = "TCP-Align: " .. dport,
+                name    = proto_label .. "-Fix: " .. dport,
                 packets = packets,
                 bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
                 comment = translate("NAT / Port Alignment") .. " -> " .. target
