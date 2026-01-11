@@ -300,11 +300,13 @@ function action_guard_data()
         end
 
         local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
-        for dport, packets, bytes, target in qb_fix_block:gmatch("dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+        for proto, dport, packets, bytes, target in qb_fix_block:gmatch("(%l+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+            local proto_label = proto:upper()
             table.insert(rv.rules, {
-                name    = "TCP-Align: " .. dport,
+                name    = proto_label .. "-Fix: " .. dport,
                 packets = packets,
                 bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+                bytes_raw = bytes,
                 comment = translate("NAT / Port Alignment") .. " -> " .. target
             })
         end
