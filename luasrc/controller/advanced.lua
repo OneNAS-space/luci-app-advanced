@@ -307,6 +307,7 @@ function action_guard_data()
                 name    = proto_label .. "-Fix: " .. dport,
                 packets = packets,
                 bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
+                bytes_raw = bytes,
                 comment = translate("NAT / Port Alignment") .. " -> " .. target
             })
         end
