@@ -56,6 +56,7 @@ setup_nft() {
     local is_broken=0
     [ -f "$PSW_DEAD_FLAG" ] && is_broken=1
     local psw_online=$(nft list table inet passwall2 >/dev/null 2>&1 && echo 1 || echo 0)
+    local WAN_IF=$(uci -q get network.wan.device || uci -q get network.wan.ifname)
 
     nft add table inet bypass_logic 2>/dev/null
     if ! nft list chain inet bypass_logic static_privilege >/dev/null 2>&1; then
@@ -65,6 +66,7 @@ setup_nft() {
     nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
     nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; }" 2>/dev/null
     nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic qb_outer_ports { type inet_service; }" 2>/dev/null
 
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-tcp-Direct"; then
         nft add rule inet bypass_logic static_privilege ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
@@ -77,6 +79,12 @@ setup_nft() {
     fi
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel6-udp-Direct"; then
         nft add rule inet bypass_logic static_privilege ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-udp-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-tcp-Inbound-Mark-Direct"; then
+        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" tcp dport @qb_outer_ports counter meta mark set 0xff comment "qB-tcp-Inbound-Mark-Direct"
+    fi
+    if ! nft list table inet bypass_logic | grep -q "qB-udp-Inbound-Mark-Direct"; then
+        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" udp dport @qb_outer_ports counter meta mark set 0xff comment "qB-udp-Inbound-Mark-Direct"
     fi
     if ! nft list table inet bypass_logic | grep -q "qB-tcp-dport-Direct"; then
         nft add rule inet bypass_logic static_privilege tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
@@ -201,6 +209,7 @@ manage_natmap() {
     local script_path="/usr/share/bypass_guard/scripts/natmap_bypass.sh"
     local cache_dir="/tmp/natmap_cache"
     local qb_port_file="/tmp/natmap_qb_inner_port"
+    local qb_outer_port_file="/tmp/natmap_cache/natmap_last_port"
 
     if [ -d "$cache_dir" ]; then
         for ext in tcp_fix_rule old_port; do
@@ -218,7 +227,9 @@ manage_natmap() {
     if ! nft list chain inet bypass_logic qb_fix >/dev/null 2>&1; then
         nft "add chain inet bypass_logic qb_fix { type nat hook prerouting priority -110; }" 2>/dev/null
     fi
-
+    if ! nft list set inet bypass_logic qb_outer_ports >/dev/null 2>&1; then
+        nft "add set inet bypass_logic qb_outer_ports { type inet_service; }" 2>/dev/null
+    fi
     if [ "$natmap_en" -ne 1 ]; then
         local changed=0
         config_load natmap
@@ -240,6 +251,7 @@ manage_natmap() {
         fi
 
         nft flush chain inet bypass_logic qb_fix 2>/dev/null
+        nft flush set inet bypass_logic qb_outer_ports 2>/dev/null
         return 0
     fi
 
@@ -280,6 +292,16 @@ manage_natmap() {
         fi
     else
         logger -t bypass_guard "Sync: No natmap cache found, skipping port restore"
+    fi
+
+    if [ -f "$qb_outer_port_file" ]; then
+        local op=$(cat "$qb_outer_port_file")
+        if [ -n "$op" ]; then
+            nft "add element inet bypass_logic qb_outer_ports { $op }" 2>/dev/null
+            logger -t bypass_guard "Sync: Restored cached qB Outer Port $op"
+        fi
+    else
+        logger -t bypass_guard "Sync: No natmap cache found, skipping outer port restore"
     fi
 }
 
