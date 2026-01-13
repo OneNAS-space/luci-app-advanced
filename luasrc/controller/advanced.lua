@@ -279,7 +279,7 @@ function action_guard_data()
         for _, block_content in ipairs(blocks) do
             if block_content then
                 for packets, bytes, comment in block_content:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
-                    local key = comment:gsub("6", ""):gsub("%-v6", ""):gsub("%-V6", "")
+                    local key = comment:gsub("%-?[vV]?6$", ""):gsub("%-?[vV]?6%-", "-")
                     if not general_aggregator[key] then
                         general_aggregator[key] = { 
                             packets = 0, bytes = 0, 
@@ -327,9 +327,10 @@ function action_guard_data()
         local nat_order = {}
 
         for v_num, proto, dport, packets, bytes, target in qb_fix_block:gmatch("ipv(%d).-%s+([a-z]+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
-            local key = dport .. "_" .. target
+            local target_port = target:match(":(%d+)$") or target
+            local key = dport .. "_" .. target_port
             if not nat_aggregator[key] then
-                nat_aggregator[key] = { dport = dport, target = target, packets = 0, bytes = 0, protos = {} }
+                nat_aggregator[key] = { dport = dport, target_port = target_port, packets = 0, bytes = 0, protos = {} }
                 table.insert(nat_order, key)
             end
             nat_aggregator[key].packets = nat_aggregator[key].packets + tonumber(packets)
@@ -347,7 +348,7 @@ function action_guard_data()
                 packets = tostring(data.packets),
                 bytes   = (type(format_bytes) == "function") and format_bytes(data.bytes) or tostring(data.bytes),
                 bytes_raw = data.bytes,
-                comment = translate("NAT / Dual-Stack Forward") .. " -> " .. data.target
+                comment = translate("NAT / Dual-Stack Forward") .. " -> :" .. data.target_port
             })
         end
     end
