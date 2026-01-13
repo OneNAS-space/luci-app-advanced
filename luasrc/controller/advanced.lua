@@ -270,45 +270,82 @@ function action_guard_data()
     local all_nft = sys.exec("nft -p list table inet bypass_logic 2>/dev/null") or ""
 
     if all_nft ~= "" then
-        local blocks = {}
-        table.insert(blocks, all_nft:match("chain static_privilege%s+{(.-)}") or "")
-        table.insert(blocks, all_nft:match("chain dynamic_logic%s+{(.-)}") or "")
+        local general_aggregator = {}
+        local blocks = {
+            all_nft:match("chain static_privilege%s+{(.-)}") or ""),
+            all_nft:match("chain dynamic_logic%s+{(.-)}") or "")
+        }
         for _, block_content in ipairs(blocks) do
-            for packets, bytes, comment in block_content:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
-                local friendly_action = "—"
-                if comment:find("Direct") then
-                    if comment:find("BT") or comment:find("qB") then friendly_action = translate("Direct / BitTorrent")
-                    elseif comment:find("CF%-Tunnel") then friendly_action = translate("Direct / Cloudflare Tunnel")
-                    else friendly_action = translate("Direct / Bypass")
+            if block_content then
+                for packets, bytes, comment in block_content:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
+                    local key = comment:gsub("6", ""):gsub("%-v6", ""):gsub("%-V6", "")
+                    if not general_aggregator[key] then
+                        general_aggregator[key] = { 
+                            packets = 0, bytes = 0, 
+                            raw_comment = key,
+                            display_action = "" 
+                        }
                     end
-                elseif comment:find("Global%-Bypass") then friendly_action = translate("Direct / Global Whitelist")
-                elseif comment:find("PASS") then friendly_action = translate("Proxy / Agent Redirect")
-                elseif comment:find("Fix") or comment:find("Loopback") then
-                    if comment:find("Local") then friendly_action = translate("System / Router Self-Agent Redirect")
-                    elseif comment:find("Loopback") then friendly_action = translate("System / Loopback Bypass")
-                    else friendly_action = translate("System / Routing Fix")
+
+                    general_aggregator[key].packets = general_aggregator[key].packets + tonumber(packets)
+                    general_aggregator[key].bytes = general_aggregator[key].bytes + tonumber(bytes)
+
+                    if general_aggregator[key].display_action == "" then
+                        local friendly = "—"
+                        if key:find("Direct") then
+                            if key:find("BT") or key:find("qB") then friendly = translate("Direct / BitTorrent")
+                            elseif key:find("CF%-Tunnel") then friendly = translate("Direct / Cloudflare Tunnel")
+                            else friendly = translate("Direct / Bypass") end
+                        elseif key:find("Global%-Bypass") then friendly = translate("Direct / Global Whitelist")
+                        elseif key:find("PASS") then friendly = translate("Proxy / Agent Redirect")
+                        elseif key:find("Fix") or key:find("Loopback") then
+                            if key:find("Local") then friendly = translate("System / Router Self-Agent Redirect")
+                            elseif key:find("Loopback") then friendly = translate("System / Loopback Bypass")
+                            else friendly = translate("System / Routing Fix") end
+                        end
+                        general_aggregator[key].display_action = friendly
                     end
                 end
-                table.insert(rv.rules, {
-                    name    = comment,
-                    packets = packets,
-                    bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
-                    bytes_raw = bytes,
-                    comment = friendly_action
-                })
             end
         end
 
-        local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
-        for v_num, proto, dport, packets, bytes, target in qb_fix_block:gmatch("ipv(%d).-%s+([a-z]+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
-            local proto_label = proto:upper()
-            local display_name = (v_num == "6") and (proto_label .. "6-Fix") or (proto_label .. "-Fix")
+        local keys = {}
+        for k in pairs(general_aggregator) do table.insert(keys, k) end
+        table.sort(keys)
+        for _, k in ipairs(keys) do
+            local item = general_aggregator[k]
             table.insert(rv.rules, {
-                name    = display_name .. ": " .. dport,
-                packets = packets,
-                bytes   = (type(format_bytes) == "function") and format_bytes(bytes) or bytes,
-                bytes_raw = bytes,
-                comment = translate("NAT / Port Alignment") .. " -> " .. target
+                name    = item.raw_comment,
+                packets = tostring(item.packets),
+                bytes   = (type(format_bytes) == "function") and format_bytes(item.bytes) or tostring(item.bytes),
+                bytes_raw = item.bytes,
+                comment = item.display_action
+            })
+        end
+
+        local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
+        local nat_aggregator = {}
+
+        for v_num, proto, dport, packets, bytes, target in qb_fix_block:gmatch("ipv(%d).-%s+([a-z]+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
+            local key = target .. ":" .. dport
+            if not nat_aggregator[key] then
+                nat_aggregator[key] = { dport = dport, target = target, packets = 0, bytes = 0, protos = {} }
+            end
+            nat_aggregator[key].packets = nat_aggregator[key].packets + tonumber(packets)
+            nat_aggregator[key].bytes = nat_aggregator[key].bytes + tonumber(bytes)
+            nat_aggregator[key].protos[proto:upper()] = true
+        end
+
+        for _, data in pairs(nat_aggregator) do
+            local p_list = {}
+            for p in pairs(data.protos) do table.insert(p_list, p) end
+            table.sort(p_list)
+            table.insert(rv.rules, {
+                name    = table.concat(p_list, "/") .. "-Fix: " .. data.dport,
+                packets = tostring(data.packets),
+                bytes   = (type(format_bytes) == "function") and format_bytes(data.bytes) or tostring(data.bytes),
+                bytes_raw = data.bytes,
+                comment = translate("NAT / Dual-Stack Forward") .. " -> " .. data.target
             })
         end
     end
