@@ -271,9 +271,10 @@ function action_guard_data()
 
     if all_nft ~= "" then
         local general_aggregator = {}
+        local order_tracker = {}
         local blocks = {
-            all_nft:match("chain static_privilege%s+{(.-)}") or ""),
-            all_nft:match("chain dynamic_logic%s+{(.-)}") or "")
+            all_nft:match("chain static_privilege%s+{(.-)}"),
+            all_nft:match("chain dynamic_logic%s+{(.-)}")
         }
         for _, block_content in ipairs(blocks) do
             if block_content then
@@ -282,9 +283,10 @@ function action_guard_data()
                     if not general_aggregator[key] then
                         general_aggregator[key] = { 
                             packets = 0, bytes = 0, 
-                            raw_comment = key,
+                            name = key,
                             display_action = "" 
                         }
+                        table.insert(order_tracker, key)
                     end
 
                     general_aggregator[key].packets = general_aggregator[key].packets + tonumber(packets)
@@ -309,13 +311,10 @@ function action_guard_data()
             end
         end
 
-        local keys = {}
-        for k in pairs(general_aggregator) do table.insert(keys, k) end
-        table.sort(keys)
-        for _, k in ipairs(keys) do
+        for _, k in ipairs(order_tracker) do
             local item = general_aggregator[k]
             table.insert(rv.rules, {
-                name    = item.raw_comment,
+                name    = item.name,
                 packets = tostring(item.packets),
                 bytes   = (type(format_bytes) == "function") and format_bytes(item.bytes) or tostring(item.bytes),
                 bytes_raw = item.bytes,
@@ -325,18 +324,21 @@ function action_guard_data()
 
         local qb_fix_block = all_nft:match("chain qb_fix%s+{(.-)}") or ""
         local nat_aggregator = {}
+        local nat_order = {}
 
         for v_num, proto, dport, packets, bytes, target in qb_fix_block:gmatch("ipv(%d).-%s+([a-z]+)%s+dport%s+(%d+).-counter%s+packets%s+(%d+)%s+bytes%s+(%d+).-to%s+(%S+)") do
-            local key = target .. ":" .. dport
+            local key = dport .. "_" .. target
             if not nat_aggregator[key] then
                 nat_aggregator[key] = { dport = dport, target = target, packets = 0, bytes = 0, protos = {} }
+                table.insert(nat_order, key)
             end
             nat_aggregator[key].packets = nat_aggregator[key].packets + tonumber(packets)
             nat_aggregator[key].bytes = nat_aggregator[key].bytes + tonumber(bytes)
             nat_aggregator[key].protos[proto:upper()] = true
         end
 
-        for _, data in pairs(nat_aggregator) do
+        for _, k in ipairs(nat_order) do
+            local data = nat_aggregator[k]
             local p_list = {}
             for p in pairs(data.protos) do table.insert(p_list, p) end
             table.sort(p_list)
