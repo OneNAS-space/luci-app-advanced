@@ -7,6 +7,8 @@ SECTION="global"
 PSW_DEAD_FLAG="/tmp/psw_dead"
 CHNROUTE_V4="https://ispip.clang.cn/all_cn.txt"
 CHNROUTE_V6="https://ispip.clang.cn/all_cn_ipv6.txt"
+readonly LAN_IF=$(uci -q get network.lan.device || uci -q get network.lan.ifname || echo "br-lan")
+readonly WAN_IF=$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo "wan")
 
 is_chains_ready() {
     nft list chain inet passwall2 mangle_prerouting >/dev/null 2>&1 && \
@@ -87,7 +89,6 @@ setup_nft() {
     local is_broken=0
     [ -f "$PSW_DEAD_FLAG" ] && is_broken=1
     local psw_online=$(nft list table inet passwall2 >/dev/null 2>&1 && echo 1 || echo 0)
-    local WAN_IF=$(uci -q get network.wan.device || uci -q get network.wan.ifname)
 
     nft add table inet bypass_logic 2>/dev/null
     if ! nft list chain inet bypass_logic static_privilege >/dev/null 2>&1; then
@@ -102,10 +103,10 @@ setup_nft() {
     nft "add set inet bypass_logic china_v6 { type ipv6_addr; flags interval; }" 2>/dev/null
 
     if ! nft list chain inet bypass_logic static_privilege | grep -q "CN-v4-Direct"; then
-        nft add rule inet bypass_logic static_privilege ip daddr @china_v4 counter meta mark set 0xff accept comment "CN-v4-Direct"
+        nft add rule inet bypass_logic static_privilege iifname "$LAN_IF" ip daddr @china_v4 counter meta mark set 0xff accept comment "CN-v4-Direct"
     fi
     if ! nft list chain inet bypass_logic static_privilege | grep -q "CN-v6-Direct"; then
-        nft add rule inet bypass_logic static_privilege ip6 daddr @china_v6 counter meta mark set 0xff accept comment "CN-v6-Direct"
+        nft add rule inet bypass_logic static_privilege iifname "$LAN_IF" ip6 daddr @china_v6 counter meta mark set 0xff accept comment "CN-v6-Direct"
     fi
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel-tcp-Direct"; then
         nft add rule inet bypass_logic static_privilege ip saddr @quic_direct_clients tcp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel-tcp-Direct"
@@ -162,7 +163,7 @@ setup_nft() {
         nft add rule inet bypass_logic dynamic_logic ip daddr "$lan_addr" counter return comment "Loopback-Fix"
     fi
 
-    local lan_addr6=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | head -n1)
+    local lan_addr6=$(ip -6 addr show dev "$LAN_IF" | grep 'scope global' | awk '{print $2}' | head -n1)
     if [ -n "$lan_addr6" ]; then
         nft add rule inet bypass_logic dynamic_logic ip6 daddr "$lan_addr6" counter return comment "Loopback-v6-Fix"
     fi
@@ -175,7 +176,7 @@ setup_nft() {
         logger -t bypass_guard "🛡️ Mode: [BYPASS] - PassWall2 is unavailable ⚠️"
     fi
 
-    nft add rule inet bypass_logic dynamic_logic iifname "br-lan" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
+    nft add rule inet bypass_logic dynamic_logic iifname "$LAN_IF" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
     if is_chains_ready; then
         if nft list chain inet passwall2 mangle_prerouting 2>/dev/null | grep -q "Bypass-Global-Mark" && \
@@ -194,7 +195,7 @@ sync_clients() {
     config_load "$CONF"
     config_load "dhcp"
     local vpn_sections=$(uci show dhcp | grep "@host" | grep "\.tag" | grep -i "VPN" | cut -d. -f2 | sort -u)
-    local v6_prefix=$(ip -6 addr show dev br-lan | grep 'scope global' | awk '{print $2}' | cut -d: -f1-4 | head -n1)
+    local v6_prefix=$(ip -6 addr show dev "$LAN_IF" | grep 'scope global' | awk '{print $2}' | cut -d: -f1-4 | head -n1)
 
     if [ -z "$vpn_sections" ]; then
         logger -t bypass_guard "Sync: No VPN tagged hosts detected."
