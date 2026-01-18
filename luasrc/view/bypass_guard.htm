@@ -77,7 +77,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
         if (bytes >= 1024) return (bytes / 1024).toFixed(2) + " KiB";
         return bytes.toFixed(0) + " B";
     }
-    XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
+    XHR.poll(3, '<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_data")%>', null,
         function(x, data) {
             var tb = document.getElementById('bypass_status_table');
             if (tb) {
@@ -92,7 +92,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         var current_bytes = parseFloat(r.bytes_raw) || 0;
                         var speed_text = "";
                         if (last_bytes_map[r.name] !== undefined) {
-                            var diff = (current_bytes - last_bytes_map[r.name]) / 5;
+                            var diff = (current_bytes - last_bytes_map[r.name]) / 3;
                             if (diff > 0) {
                                 speed_text = ' <span style="color:#0069d6; font-size:0.8em; font-weight:bold;">↑ ' + renderBytes(diff) + '/s</span>';
                             }
