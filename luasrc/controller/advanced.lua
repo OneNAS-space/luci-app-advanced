@@ -279,7 +279,7 @@ function action_guard_data()
         for _, block_content in ipairs(blocks) do
             if block_content then
                 for packets, bytes, comment in block_content:gmatch("counter packets (%d+) bytes (%d+).-comment \"(.-)\"") do
-                    local key = comment:gsub("%-?[vV]?6$", ""):gsub("%-?[vV]?6%-", "-")
+                    local key = comment:gsub("%-[vV][46]%-", "-"):gsub("%-[vV][46]$", "")
                     if not general_aggregator[key] then
                         general_aggregator[key] = { 
                             packets = 0, bytes = 0, 
