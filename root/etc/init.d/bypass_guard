@@ -81,10 +81,10 @@ setup_nft() {
         nft add rule inet bypass_logic static_privilege ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-udp-Direct"
     fi
     if ! nft list table inet bypass_logic | grep -q "qB-tcp-Inbound-Mark-Direct"; then
-        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" tcp dport @qb_outer_ports counter meta mark set 0xff comment "qB-tcp-Inbound-Mark-Direct"
+        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" tcp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-tcp-Inbound-Mark-Direct"
     fi
     if ! nft list table inet bypass_logic | grep -q "qB-udp-Inbound-Mark-Direct"; then
-        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" udp dport @qb_outer_ports counter meta mark set 0xff comment "qB-udp-Inbound-Mark-Direct"
+        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" udp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-udp-Inbound-Mark-Direct"
     fi
     if ! nft list table inet bypass_logic | grep -q "qB-tcp-dport-Direct"; then
         nft add rule inet bypass_logic static_privilege tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
