@@ -6,3 +6,30 @@ msgstr ""
 
 msgid "advanced_desc"
 msgstr "Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents."
+
+msgid "Direct / CN-Direct"
+msgstr "Direct / ⚡ China (Offload)"
+
+msgid "Direct / BitTorrent"
+msgstr "Direct / 📥 BitTorrent (P2P加速)"
+
+msgid "Direct / Cloudflare Tunnel"
+msgstr "Direct / ☁️ CF Tunnel (穿透)"
+
+msgid "Direct / Bypass"
+msgstr "Direct / 🌐 Bypass"
+
+msgid "Direct / Global Whitelist"
+msgstr "Direct / 🌍 Global Whitelist"
+
+msgid "Proxy / Agent Redirect"
+msgstr "Proxy / 🚀 PassWall2 (Encrypt)"
+
+msgid "System / Router Self-Agent Redirect"
+msgstr "System / 🚀 Router Self-Agent Redirect"
+
+msgid "System / Loopback Bypass"
+msgstr "System / 🔄 Loopback Bypass"
+
+msgid "System / Routing Fix"
+msgstr "System / 🛠️ Routing Fix"
