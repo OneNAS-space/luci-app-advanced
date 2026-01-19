@@ -11,8 +11,8 @@ msgstr ""
 msgid "advanced_desc"
 msgstr "Configuration documents are directly edited. Unless you know what you are doing, please do not easily modify these configuration documents."
 
-msgid "Direct / CN-Direct"
-msgstr "Direct / ⚡ China (Offload)"
+msgid "Direct / China IP Address"
+msgstr "Direct / 🇨🇳 China (Offload)"
 
 msgid "Direct / BitTorrent"
 msgstr "Direct / 📥 BitTorrent (P2P)"
