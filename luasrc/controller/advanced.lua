@@ -300,6 +300,7 @@ function action_guard_data()
                         if key:find("Direct") then
                             if key:find("BT") or key:find("qB") then friendly = translate("Direct / BitTorrent")
                             elseif key:find("CF%-Tunnel") then friendly = translate("Direct / Cloudflare Tunnel")
+                            elseif key:find("CN%-Direct") then friendly = translate("Direct / China IP Address")
                             else friendly = translate("Direct / Bypass") end
                         elseif key:find("Global%-Bypass") then friendly = translate("Direct / Global Whitelist")
                         elseif key:find("PASS") then friendly = translate("Proxy / Agent Redirect")
