@@ -134,26 +134,29 @@ msgstr "Natmap映射qB端口直连"
 msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap 端口更改时自动更新防火墙规则。"
 
+msgid "Direct / CN-Direct"
+msgstr "直连 / 🇨🇳 国内流量 (Offload)"
+
 msgid "Direct / BitTorrent"
-msgstr "直连 / BitTorrent 流量"
+msgstr "直连 / 📥 BT 下载 (P2P加速)"
 
 msgid "Direct / Cloudflare Tunnel"
-msgstr "直连 / Cloudflare 隧道"
+msgstr "直连 / ☁️ CF Tunnel (穿透加速)"
 
 msgid "Direct / Bypass"
 msgstr "直连 / 常规绕过"
 
 msgid "Direct / Global Whitelist"
-msgstr "直连 / 全局白名单"
+msgstr "直连 / 🌍 全局白名单"
 
 msgid "Proxy / Agent Redirect"
-msgstr "代理 / 插件重定向"
+msgstr "代理 / 🚀 PassWall 分流 (加密)"
 
 msgid "System / Router Self-Agent Redirect"
 msgstr "系统 / 路由器自身代理"
 
 msgid "System / Loopback Bypass"
-msgstr "系统 / 回环流量绕过"
+msgstr "系统 / 🔄 回环流量绕过"
 
 msgid "System / Routing Fix"
 msgstr "系统 / 路由路径修正"
