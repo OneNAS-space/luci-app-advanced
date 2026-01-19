@@ -134,7 +134,7 @@ msgstr "Natmap映射qB端口直连"
 msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap 端口更改时自动更新防火墙规则。"
 
-msgid "Direct / CN-Direct"
+msgid "Direct / China IP Address"
 msgstr "直连 / 🇨🇳 国内流量 (Offload)"
 
 msgid "Direct / BitTorrent"
