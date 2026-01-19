@@ -135,37 +135,34 @@ msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap 端口更改时自动更新防火墙规则。"
 
 msgid "Direct / CN-Direct"
-msgstr "直连 / 🇨🇳 国内流量 (Offload)"
+msgstr "直连 / ⚡ 国内流量 (Offload)"
 
 msgid "Direct / BitTorrent"
 msgstr "直连 / 📥 BT 下载 (P2P加速)"
 
 msgid "Direct / Cloudflare Tunnel"
-msgstr "直连 / ☁️ CF Tunnel (穿透加速)"
+msgstr "直连 / ☁️ CF Tunnel (穿透)"
 
 msgid "Direct / Bypass"
-msgstr "直连 / 常规绕过"
+msgstr "直连 / 🌐 常规绕过"
 
 msgid "Direct / Global Whitelist"
 msgstr "直连 / 🌍 全局白名单"
 
 msgid "Proxy / Agent Redirect"
-msgstr "代理 / 🚀 PassWall 分流 (加密)"
+msgstr "代理 / 🚀 PassWall2 分流 (加密)"
 
 msgid "System / Router Self-Agent Redirect"
-msgstr "系统 / 路由器自身代理"
+msgstr "系统 / 🚀 路由器自身代理"
 
 msgid "System / Loopback Bypass"
 msgstr "系统 / 🔄 回环流量绕过"
 
 msgid "System / Routing Fix"
-msgstr "系统 / 路由路径修正"
+msgstr "系统 / 🛠️ 路由路径修正"
 
 msgid "VPN Clients"
 msgstr "VPN 客户端"
-
-msgid "Hostname"
-msgstr "主机名"
 
 msgid "MAC Address"
 msgstr "MAC 地址"
