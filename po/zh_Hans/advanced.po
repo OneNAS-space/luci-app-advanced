@@ -135,7 +135,7 @@ msgid "Update firewall rules automatically when Natmap port changes."
 msgstr "Natmap 端口更改时自动更新防火墙规则。"
 
 msgid "Direct / CN-Direct"
-msgstr "直连 / ⚡ 国内流量 (Offload)"
+msgstr "直连 / 🇨🇳 国内流量 (Offload)"
 
 msgid "Direct / BitTorrent"
 msgstr "直连 / 📥 BT 下载 (P2P加速)"
