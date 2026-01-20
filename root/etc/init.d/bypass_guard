@@ -246,10 +246,33 @@ sync_clients() {
 
 manage_natmap() {
     local natmap_en="$1"
+    local stun_script="/usr/share/bypass_guard/scripts/stun_sync.sh"
     local script_path="/usr/share/bypass_guard/scripts/natmap_bypass.sh"
     local cache_dir="/tmp/natmap_cache"
     local qb_port_file="/tmp/natmap_qb_inner_port"
     local qb_outer_port_file="/tmp/natmap_cache/natmap_last_port"
+
+    # --- 第一部分：STUN 特权直连管理 ---
+    if [ "$natmap_en" -eq 1 ] && [ -f "$stun_script" ]; then
+        # 1. 动态初始化 STUN 链与集合
+        if ! nft list chain inet bypass_logic static_privilege_output >/dev/null 2>&1; then
+            nft "add chain inet bypass_logic static_privilege_output { type filter hook output priority -410; policy accept; }" 2>/dev/null
+            nft "add set inet bypass_logic stun_direct { type ipv4_addr; flags interval; }" 2>/dev/null
+        fi
+
+        # 2. 注入 3478 特权规则（如果不存在）
+        if ! nft list chain inet bypass_logic static_privilege_output | grep -q "STUN-Direct"; then
+            nft add rule inet bypass_logic static_privilege_output meta l4proto { tcp, udp } th dport 3478 ip daddr @stun_direct counter accept comment "STUN-Direct-3478"
+        fi
+
+        # 3. 执行独立脚本：维护 STUN IP 列表
+        sh "$stun_script"
+    else
+        # 4. 如果 natmap 关闭，彻底清理 STUN 相关内核资源
+        nft delete chain inet bypass_logic static_privilege_output 2>/dev/null
+        nft delete set inet bypass_logic stun_direct 2>/dev/null
+        logger -t bypass_guard "Sync: STUN privilege resources cleared."
+    fi
 
     if [ -d "$cache_dir" ]; then
         for ext in tcp_fix_rule old_port; do
