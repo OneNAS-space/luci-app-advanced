@@ -271,6 +271,7 @@ manage_natmap() {
         # 4. 如果 natmap 关闭，彻底清理 STUN 相关内核资源
         nft delete chain inet bypass_logic static_privilege_output 2>/dev/null
         nft delete set inet bypass_logic stun_direct 2>/dev/null
+        rm -f "/etc/config/stun_servers.etag"
         logger -t bypass_guard "Sync: STUN privilege resources cleared."
     fi
 
