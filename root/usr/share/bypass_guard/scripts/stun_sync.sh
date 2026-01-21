@@ -32,16 +32,27 @@ sync_stun() {
     local count=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | grep -c "element")
     if [ -s "$STUN_CACHE" ] && { [ "$force" = "1" ] || [ "$count" -lt 10 ]; }; then
         logger -t bypass_guard "STUN: Updating IP set from cache..."
-        {
-            echo "flush set inet $TABLE $SET_NAME"
-            grep -vE '^#|^$' "$STUN_CACHE" | while read -r domain; do
-                local clean_domain=$(echo "$domain" | awk '{print $1}')
-                [ -z "$clean_domain" ] && continue
-                # 批量解析并在 dns 层面去重
-                local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | tail -n +2 | awk '{print $2}' | grep -E '^[0-9.]+$')
-                for ip in $ips; do echo "add element inet $TABLE $SET_NAME { $ip }"; done
+        local nft_cmd="/tmp/stun_nft.tmp"
+        echo "flush set inet $TABLE $SET_NAME" > "$nft_cmd"
+
+        grep -vE '^#|^$' "$STUN_CACHE" | while read -r domain; do
+            local clean_domain=$(echo "$domain" | awk '{print $1}')
+            [ -z "$clean_domain" ] && continue
+            
+            # 使用更稳健的解析方式：尝试本地后尝试阿里 DNS
+            local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^[0-9.]+$' | grep -v '127.0.0.1')
+            [ -z "$ips" ] && ips=$(nslookup "$clean_domain" 223.5.5.5 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^[0-9.]+$')
+
+            for ip in $ips; do
+                echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
             done
-        } | nft -f - 2>/dev/null
+        done
+        
+        # 原子化注入，防止多次调用 nft 产生开销
+        nft -f "$nft_cmd" 2>/dev/null
+        rm -f "$nft_cmd"
+        
+        logger -t bypass_guard "STUN: IP set updated."
     fi
 }
 
