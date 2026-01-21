@@ -1,6 +1,6 @@
 #!/bin/sh
 
-STUN_URL="https://raw.githubusercontent.com/muink/rfc5780-stun-server/master/valid_hosts_rfc5780_tcp.txt"
+STUN_URL="https://raw.githubusercontent.com/muink/rfc5780-stun-server/master/valid_hosts_rfc5780.txt"
 STUN_CACHE="/etc/config/stun_servers.txt"
 STUN_ETAG="/etc/config/stun_servers.etag"
 TABLE="bypass_logic"
@@ -29,19 +29,22 @@ sync_stun() {
     local count=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | grep -c "element")
     if [ -s "$STUN_CACHE" ] && { [ "$force" = "1" ] || [ "$count" -lt 10 ]; }; then
         logger -t bypass_guard "STUN: Updating IP set from cache..."
+        local domains=$(grep -vE '^#|^$' "$STUN_CACHE")
         local nft_cmd="/tmp/stun_nft.tmp"
         echo "flush set inet $TABLE $SET_NAME" > "$nft_cmd"
 
-        grep -vE '^#|^$' "$STUN_CACHE" | while read -r domain; do
-            local clean_domain=$(echo "$domain" | awk '{print $1}')
+        for domain in $domains; do
+            local clean_domain=$(echo "$domain" | awk -F: '{print $1}')
             [ -z "$clean_domain" ] && continue
             
             local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | grep -v '127.0.0.1')
             [ -z "$ips" ] && ips=$(nslookup "$clean_domain" 223.5.5.5 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$')
 
-            for ip in $ips; do
-                echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
-            done
+            if [ -n "$ips" ]; then
+                for ip in $ips; do
+                    echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
+                done
+            fi
         done
         
         nft -f "$nft_cmd" 2>/dev/null
