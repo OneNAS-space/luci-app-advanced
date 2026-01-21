@@ -274,6 +274,7 @@ function action_guard_data()
         local order_tracker = {}
         local blocks = {
             all_nft:match("chain static_privilege%s+{(.-)}"),
+            all_nft:match("chain static_privilege_output%s+{(.-)}"),
             all_nft:match("chain dynamic_logic%s+{(.-)}")
         }
         for _, block_content in ipairs(blocks) do
@@ -301,6 +302,7 @@ function action_guard_data()
                             if key:find("BT") or key:find("qB") then friendly = translate("Direct / BitTorrent")
                             elseif key:find("CF%-Tunnel") then friendly = translate("Direct / Cloudflare Tunnel")
                             elseif key:find("CN%-Direct") then friendly = translate("Direct / China IP Address")
+                            elseif key:find("STUN%-Direct") then friendly = translate("Direct / STUN Penetration")
                             else friendly = translate("Direct / Bypass") end
                         elseif key:find("Global%-Bypass") then friendly = translate("Direct / Global Whitelist")
                         elseif key:find("PASS") then friendly = translate("Proxy / Agent Redirect")

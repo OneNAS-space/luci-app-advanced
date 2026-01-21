@@ -7,8 +7,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/package.mk
 
 PKG_NAME:=luci-app-advanced
-PKG_VERSION:=3.3.1
-PKG_RELEASE:=5
+PKG_VERSION:=3.4.1
+PKG_RELEASE:=1
 PKG_BUILD_DEPENDS:=luci-base/host
 
 define Package/$(PKG_NAME)
@@ -42,6 +42,7 @@ define Package/$(PKG_NAME)/install
 
 	$(INSTALL_DIR) $(1)/usr/share/bypass_guard/scripts
 	$(INSTALL_BIN) ./root/usr/share/bypass_guard/scripts/natmap_bypass.sh $(1)/usr/share/bypass_guard/scripts/natmap_bypass.sh
+	$(INSTALL_BIN) ./root/usr/share/bypass_guard/scripts/stun_sync.sh $(1)/usr/share/bypass_guard/scripts/stun_sync.sh
 
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
 	$(CP) ./luasrc/* $(1)/usr/lib/lua/luci

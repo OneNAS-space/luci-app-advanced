@@ -137,6 +137,9 @@ msgstr "Natmap 端口更改时自动更新防火墙规则。"
 msgid "Direct / China IP Address"
 msgstr "直连 / 🇨🇳 国内流量 (Offload)"
 
+msgid "Direct / STUN Penetration"
+msgstr "直连 / 🧩 NATMAP (穿透)"
+
 msgid "Direct / BitTorrent"
 msgstr "直连 / 📥 BT 下载 (P2P加速)"
 
