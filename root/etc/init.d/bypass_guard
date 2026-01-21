@@ -257,11 +257,6 @@ manage_natmap() {
     local qb_outer_port_file="/tmp/natmap_cache/natmap_last_port"
 
     if [ "$natmap_en" -eq 1 ] && [ -f "$stun_script" ]; then
-        if ! nft list chain inet bypass_logic static_privilege_output >/dev/null 2>&1; then
-            nft "add chain inet bypass_logic static_privilege_output { type filter hook output priority -410; policy accept; }" 2>/dev/null
-            nft "add set inet bypass_logic stun_direct { type ipv4_addr; flags interval; }" 2>/dev/null
-        fi
-
         nft flush chain inet bypass_logic static_privilege_output
         if ! nft list chain inet bypass_logic static_privilege_output | grep -q "STUN-UDP-Direct"; then
             nft add rule inet bypass_logic static_privilege_output ip daddr @stun_direct udp dport 3478 notrack meta mark set 0xff counter accept comment "STUN-UDP-Direct"
@@ -273,10 +268,9 @@ manage_natmap() {
 
         sh "$stun_script" &
     else
-        nft delete chain inet bypass_logic static_privilege_output 2>/dev/null
-        nft delete set inet bypass_logic stun_direct 2>/dev/null
+        nft flush chain inet bypass_logic static_privilege_output 2>/dev/null
+        nft flush set inet bypass_logic stun_direct 2>/dev/null
         rm -f "/etc/config/stun_servers.etag"
-        logger -t bypass_guard "Sync: STUN privilege resources cleared."
     fi
 
     if [ -d "$cache_dir" ]; then
