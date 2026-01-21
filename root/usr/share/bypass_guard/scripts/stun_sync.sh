@@ -40,8 +40,8 @@ sync_stun() {
             [ -z "$clean_domain" ] && continue
             
             # 使用更稳健的解析方式：尝试本地后尝试阿里 DNS
-            local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^[0-9.]+$' | grep -v '127.0.0.1')
-            [ -z "$ips" ] && ips=$(nslookup "$clean_domain" 223.5.5.5 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^[0-9.]+$')
+            local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | grep -v '127.0.0.1')
+            [ -z "$ips" ] && ips=$(nslookup "$clean_domain" 223.5.5.5 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$')
 
             for ip in $ips; do
                 echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
