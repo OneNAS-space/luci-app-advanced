@@ -440,7 +440,5 @@ reload_service() {
 
 service_triggers() {
     procd_add_reload_trigger "passwall2"
-    procd_add_reload_trigger "firewall"
     procd_add_reload_trigger "dhcp"
-    procd_add_reload_trigger "network"
 }
