@@ -140,6 +140,14 @@ $(get_ip_addr "$wifi_iface" 6)
 EOF
 done
 
+# --- Last Login Metric ---
+LAST_LOG=$(logread | grep "Password auth succeeded" | tail -n 2 | head -n 1)
+if [ -n "$LAST_LOG" ]; then
+    LAST_LOGIN_STR=$(echo "$LAST_LOG" | awk '{sub(/:[0-9]+$/, "", $NF); print $1, $2, $3, $4, $5, "from", $NF}')
+else
+    LAST_LOGIN_STR="First login or no records"
+fi
+
 # --- Execution and Output ---
 get_wan_interfaces_and_ips
 get_lan_interfaces_and_ips
@@ -173,3 +181,4 @@ if [ -n "$WIFI_INFO_LINES" ]; then
 fi
 
 echo ""
+echo " Last login: $LAST_LOGIN_STR"
