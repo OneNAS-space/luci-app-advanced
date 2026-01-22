@@ -27,31 +27,35 @@ sync_stun() {
     rm -f "$tmp_header" "$tmp_body"
 
     local count=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | grep -c "element")
-    if [ -s "$STUN_CACHE" ] && { [ "$force" = "1" ] || [ "$count" -lt 10 ]; }; then
-        logger -t bypass_guard "STUN: Updating IP set from cache..."
-        local domains=$(grep -vE '^#|^$' "$STUN_CACHE")
-        local nft_cmd="/tmp/stun_nft.tmp"
-        echo "flush set inet $TABLE $SET_NAME" > "$nft_cmd"
-
-        for domain in $domains; do
-            local clean_domain=$(echo "$domain" | awk -F: '{print $1}')
-            [ -z "$clean_domain" ] && continue
-            
-            local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | grep -v '127.0.0.1')
-            [ -z "$ips" ] && ips=$(nslookup "$clean_domain" 223.5.5.5 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$')
-
-            if [ -n "$ips" ]; then
-                for ip in $ips; do
-                    echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
-                done
-            fi
-        done
-        
-        nft -f "$nft_cmd" 2>/dev/null
-        rm -f "$nft_cmd"
-        
-        logger -t bypass_guard "STUN: IP set updated."
+    if [ "$force" != "1" ] && [ "$count" -gt 10 ]; then
+        local last_mod=$(stat -c %Y "$STUN_CACHE" 2>/dev/null || echo 0)
+        local now=$(date +%s)
+        if [ $((now - last_mod)) -lt 7200 ]; then
+            exit 0
+        fi
     fi
+
+    logger -t bypass_guard "STUN: Starting DNS resolution for IP set..."
+    local domains=$(grep -vE '^#|^$' "$STUN_CACHE")
+    local nft_cmd="/tmp/stun_nft.tmp"
+    echo "flush set inet $TABLE $SET_NAME" > "$nft_cmd"
+
+    for domain in $domains; do
+        local clean_domain=$(echo "$domain" | awk -F: '{print $1}')
+        [ -z "$clean_domain" ] && continue
+        local ips=$(nslookup "$clean_domain" 127.0.0.1 2>/dev/null | grep 'Address' | awk '{print $2}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | grep -v '127.0.0.1')
+        if [ -n "$ips" ]; then
+            for ip in $ips; do
+                echo "add element inet $TABLE $SET_NAME { $ip }" >> "$nft_cmd"
+            done
+        fi
+    done
+        
+    nft -f "$nft_cmd" 2>/dev/null
+    rm -f "$nft_cmd"
+        
+    touch "$STUN_CACHE"
+    logger -t bypass_guard "STUN: IP set updated with $count elements."
 }
 
 sync_stun "$1"
