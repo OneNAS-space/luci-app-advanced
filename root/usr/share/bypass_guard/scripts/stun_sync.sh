@@ -26,8 +26,8 @@ sync_stun() {
     fi
     rm -f "$tmp_header" "$tmp_body"
 
-    local count=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | grep -c "element")
-    if [ "$force" != "1" ] && [ "$count" -gt 10 ]; then
+    local current_empty=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | grep -q "element" && echo 0 || echo 1)
+    if [ "$force" != "1" ] && [ "$current_empty" = "0" ]; then
         local last_mod=$(stat -c %Y "$STUN_CACHE" 2>/dev/null || echo 0)
         local now=$(date +%s)
         if [ $((now - last_mod)) -lt 7200 ]; then
@@ -53,9 +53,10 @@ sync_stun() {
         
     nft -f "$nft_cmd" 2>/dev/null
     rm -f "$nft_cmd"
-        
+
+    local final_count=$(nft list set inet $TABLE $SET_NAME 2>/dev/null | tr ',' '\n' | grep -cE '([0-9]{1,3}\.){3}[0-9]{1,3}')
     touch "$STUN_CACHE"
-    logger -t bypass_guard "STUN: IP set updated with $count elements."
+    logger -t bypass_guard "STUN: IP set updated with $final_count elements."
 }
 
 sync_stun "$1"
