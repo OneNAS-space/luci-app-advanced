@@ -336,7 +336,11 @@ manage_natmap() {
         /etc/init.d/natmap reload
     fi
 
-    local unique_rules=$(cat "$cache_dir"/*.tcp_fix_rule 2>/dev/null | sort -u)
+    if [ -d "$cache_dir" ]; then
+        if ls "$cache_dir"/*.tcp_fix_rule >/dev/null 2>&1; then
+            unique_rules=$(cat "$cache_dir"/*.tcp_fix_rule 2>/dev/null | sort -u)
+        fi
+    fi
     {
         echo "flush chain inet bypass_logic qb_fix"
         if [ -n "$unique_rules" ]; then
