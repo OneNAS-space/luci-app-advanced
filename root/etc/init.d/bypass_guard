@@ -173,8 +173,8 @@ setup_nft() {
     fi
 
     if [ "$is_broken" -eq 0 ] && [ "$psw_online" -eq 1 ]; then
-        nft add rule inet bypass_logic dynamic_logic ip saddr @psw_vpn_clients counter meta mark set 0 accept comment "AGENT-PASS"
-        nft add rule inet bypass_logic dynamic_logic ip6 saddr @psw_vpn_clients6 counter meta mark set 0 accept comment "AGENT-PASS-V6"
+        nft add rule inet bypass_logic dynamic_logic ip saddr @psw_vpn_clients meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS"
+        nft add rule inet bypass_logic dynamic_logic ip6 saddr @psw_vpn_clients6 meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS-V6"
         logger -t bypass_guard "🚀 Mode: [PROXY] - Redirecting VPN clients to PassWall2 ✅"
     else
         logger -t bypass_guard "🛡️ Mode: [BYPASS] - PassWall2 is unavailable ⚠️"
