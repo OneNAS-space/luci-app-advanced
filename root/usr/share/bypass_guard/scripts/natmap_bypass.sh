@@ -37,9 +37,7 @@ if [ "$PROTOCOL" = "udp" ]; then
     if [ -n "$REAL_TARGET_IP" ] && [ -n "$WAN_IF" ]; then
         rm -f "$CACHE_DIR"/*.tcp_fix_rule
         {
-            echo "iifname \"$WAN_IF\" meta nfproto ipv4 udp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
             echo "iifname \"$WAN_IF\" meta nfproto ipv4 tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
-            echo "iifname \"$WAN_IF\" meta nfproto ipv6 udp dport $OUTER_PORT counter dnat to :$INNER_PORT"
             echo "iifname \"$WAN_IF\" meta nfproto ipv6 tcp dport $OUTER_PORT counter dnat to :$INNER_PORT"
         } > "$RULE_FILE"
         /etc/init.d/bypass_guard manage_natmap 1
