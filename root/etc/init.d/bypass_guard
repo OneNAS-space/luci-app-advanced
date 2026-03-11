@@ -259,7 +259,7 @@ manage_natmap() {
     if [ "$natmap_en" -eq 1 ] && [ -f "$stun_script" ]; then
         nft flush chain inet bypass_logic static_privilege_output
         if ! nft list chain inet bypass_logic static_privilege_output | grep -q "STUN-UDP-Direct"; then
-            nft add rule inet bypass_logic static_privilege_output ip daddr @stun_direct udp dport 3478 notrack meta mark set 0xff counter accept comment "STUN-UDP-Direct"
+            nft add rule inet bypass_logic static_privilege_output ip daddr @stun_direct udp dport 3478 meta mark set 0xff counter accept comment "STUN-UDP-Direct"
         fi
 
         if ! nft list chain inet bypass_logic static_privilege_output | grep -q "STUN-TCP-Direct"; then
