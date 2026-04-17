@@ -154,8 +154,8 @@ jobs:
       - name: 🗃️ Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ needs.check.outputs.main_full_version }}
-          name: Build-${{ needs.check.outputs.main_full_version }}
+          tag_name: ${{ needs.check.outputs.tag_name }}
+          name: Build-${{ needs.check.outputs.tag_name }}
           files: |
             ./release-assets/**/*.ipk
             ./release-assets/**/*.apk
