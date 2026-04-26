@@ -17,7 +17,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
         <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
         <br />
         <div class="cbi-value-description">
-            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+            <span id="natmap_desc" style="color: #666">
                 <%=translate("Update firewall rules automatically when Natmap port changes.")%>
             </span>
         </div>
