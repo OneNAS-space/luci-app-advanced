@@ -181,10 +181,18 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
     function toggleBypass(action) {
         var btn = document.getElementById('guard_btn');
+        if (!btn) return;
+        var originalValue = btn.value;
         btn.disabled = true;
         btn.value = '<%:Applying...%>';
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_status")%>', { set: action }, function(x, data) {
-            location.reload();
+            if (data && data.code === 0) {
+                location.reload();
+                return;
+            }
+            btn.disabled = false;
+            btn.value = originalValue;
+            alert('<%:Config Update Failed%>');
         });
     }
 //]]></script>
