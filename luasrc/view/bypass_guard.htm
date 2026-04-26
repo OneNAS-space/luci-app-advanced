@@ -89,7 +89,12 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = r.name;
                         tr.insertCell(-1).innerHTML = r.packets;
-                        var current_bytes = parseFloat(r.bytes_raw) || 0;
+                        var raw_bytes = r.bytes_raw;
+                        var parsed_bytes = parseFloat(raw_bytes);
+                        if (raw_bytes === undefined || raw_bytes === null || isNaN(parsed_bytes)) {
+                            console.warn('Missing or invalid bytes_raw in guard_data rule:', r);
+                        }
+                        var current_bytes = isNaN(parsed_bytes) ? 0 : parsed_bytes;
                         var speed_text = "";
                         if (last_bytes_map[r.name] !== undefined) {
                             var diff = (current_bytes - last_bytes_map[r.name]) / 3;
