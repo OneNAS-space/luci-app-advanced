@@ -152,6 +152,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     );
     <% end %>
 
+    <% if is_running and has_natmap_conf then %>
     document.addEventListener("DOMContentLoaded", function() {
         var cb = document.getElementById('natmap_enable_cb');
         if (cb) {
@@ -162,6 +163,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
             });
         }
     });
+    <% end %>
 
     function updateNatmapConfig(isChecked) {
         var cb = document.getElementById('natmap_enable_cb');
