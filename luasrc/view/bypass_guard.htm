@@ -17,7 +17,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
         <input type="checkbox" id="natmap_enable_cb" onchange="updateNatmapConfig(this.checked)" />
         <br />
         <div class="cbi-value-description">
-            <span id="natmap_desc" style="color: <%=is_running and '#666' or '#999'%>">
+            <span id="natmap_desc" style="color: #666">
                 <%=translate("Update firewall rules automatically when Natmap port changes.")%>
             </span>
         </div>
@@ -89,7 +89,12 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = r.name;
                         tr.insertCell(-1).innerHTML = r.packets;
-                        var current_bytes = parseFloat(r.bytes_raw) || 0;
+                        var raw_bytes = r.bytes_raw;
+                        var parsed_bytes = parseFloat(raw_bytes);
+                        if (raw_bytes === undefined || raw_bytes === null || isNaN(parsed_bytes)) {
+                            console.warn('Missing or invalid bytes_raw in guard_data rule:', r);
+                        }
+                        var current_bytes = isNaN(parsed_bytes) ? 0 : parsed_bytes;
                         var speed_text = "";
                         if (last_bytes_map[r.name] !== undefined) {
                             var diff = (current_bytes - last_bytes_map[r.name]) / 3;
@@ -131,9 +136,10 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = c.hostname ? c.hostname : '<em>unknown</em>';
                         tr.insertCell(-1).innerHTML = (c.mac || '—');
-                        var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
+                        var isIPv6 = c.ip.indexOf(':') > -1;
+                        var ipStyle = isIPv6 ? 'style="font-size:0.85em; word-break:break-all;"' : '';
                         tr.insertCell(-1).innerHTML = '<span ' + ipStyle + '>' + c.ip + '</span>';
-                        tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
+                        tr.insertCell(-1).innerHTML = isIPv6 ? 'IPv6' : 'IPv4';
                         var roleHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 4px; border-radius:3px;">VPN</span>';
                         if (c.is_server) {
                             roleHtml += ' <span class="label" style="background-color:#0069d6; color:white; padding:2px 4px; border-radius:3px; margin-left:4px;">Server</span>';
@@ -152,6 +158,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
     );
     <% end %>
 
+    <% if is_running and has_natmap_conf then %>
     document.addEventListener("DOMContentLoaded", function() {
         var cb = document.getElementById('natmap_enable_cb');
         if (cb) {
@@ -162,6 +169,7 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
             });
         }
     });
+    <% end %>
 
     function updateNatmapConfig(isChecked) {
         var cb = document.getElementById('natmap_enable_cb');
@@ -181,10 +189,18 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
 
     function toggleBypass(action) {
         var btn = document.getElementById('guard_btn');
+        if (!btn) return;
+        var originalValue = btn.value;
         btn.disabled = true;
         btn.value = '<%:Applying...%>';
         XHR.get('<%=luci.dispatcher.build_url("admin", "system", "advanced", "guard_status")%>', { set: action }, function(x, data) {
-            location.reload();
+            if (data && data.code === 0) {
+                location.reload();
+                return;
+            }
+            btn.disabled = false;
+            btn.value = originalValue;
+            alert('<%:Config Update Failed%>');
         });
     }
 //]]></script>
