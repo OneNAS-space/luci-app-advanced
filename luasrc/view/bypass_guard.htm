@@ -131,9 +131,10 @@ local has_natmap_conf = fs.access("/etc/config/natmap")
                         tr.className = 'cbi-section-table-row cbi-rowstyle-' + ((i % 2) + 1);
                         tr.insertCell(-1).innerHTML = c.hostname ? c.hostname : '<em>unknown</em>';
                         tr.insertCell(-1).innerHTML = (c.mac || '—');
-                        var ipStyle = (c.ip.indexOf(':') > -1) ? 'style="font-size:0.85em; word-break:break-all;"' : '';
+                        var isIPv6 = c.ip.indexOf(':') > -1;
+                        var ipStyle = isIPv6 ? 'style="font-size:0.85em; word-break:break-all;"' : '';
                         tr.insertCell(-1).innerHTML = '<span ' + ipStyle + '>' + c.ip + '</span>';
-                        tr.insertCell(-1).innerHTML = (c.ip.indexOf(':') > -1) ? 'IPv6' : 'IPv4';
+                        tr.insertCell(-1).innerHTML = isIPv6 ? 'IPv6' : 'IPv4';
                         var roleHtml = '<span class="label" style="background-color:#46a546; color:white; padding:2px 4px; border-radius:3px;">VPN</span>';
                         if (c.is_server) {
                             roleHtml += ' <span class="label" style="background-color:#0069d6; color:white; padding:2px 4px; border-radius:3px; margin-left:4px;">Server</span>';
