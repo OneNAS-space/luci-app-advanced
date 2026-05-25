@@ -379,26 +379,49 @@ end
 end
 end
 
-local file_path_agh = "/etc/AdGuardHome.yaml"
-if nixio.fs.access(file_path_agh) then
-s:tab("aghconf",translate("AdGuard Home"),string.format(description_template, file_path_agh))
-conf=s:taboption("aghconf",Value,"aghconf",nil,option_description)
-conf.template="cbi/tvalue"
-conf.rows=20
-conf.wrap="off"
-conf.cfgvalue=function(t,t)
+local file_path_agh = nil
+local init_script = nil
+local candidate_paths = {
+"/etc/AdGuardHome.yaml",
+"/etc/adguardhome/adguardhome.yaml"
+}
+local candidate_inits = {
+"/etc/init.d/AdGuardHome",
+"/etc/init.d/adguardhome"
+}
+for _, path in ipairs(candidate_paths) do
+if nixio.fs.access(path) then
+file_path_agh = path
+break
+end
+end
+for _, init in ipairs(candidate_inits) do
+if nixio.fs.access(init) then
+init_script = init
+break
+end
+end
+if file_path_agh then
+s:tab("aghconf", translate("AdGuard Home"), string.format(description_template, file_path_agh))
+conf = s:taboption("aghconf", Value, "aghconf", nil, option_description)
+conf.template = "cbi/tvalue"
+conf.rows = 20
+conf.wrap = "off"
+conf.cfgvalue = function(t, t)
 return e.readfile(file_path_agh) or ""
 end
-conf.write=function(a,a,t)
+conf.write = function(a, a, t)
 if t then
-t=t:gsub("\r\n?","\n")
+t = t:gsub("\r\n?", "\n")
 local tmp_path = "/tmp/AdGuardHome.tmp"
-e.writefile(tmp_path,t)
+e.writefile(tmp_path, t)
 if (luci.sys.call("cmp -s %q %q" %{ tmp_path, file_path_agh }) == 1) then
-e.writefile(file_path_agh,t)
-luci.sys.call("/etc/init.d/AdGuardHome restart >/dev/null")
+e.writefile(file_path_agh, t)
+if init_script then
+luci.sys.call("%q restart >/dev/null" % init_script)
 end
-e.remove(tmp_path)
+end
+nixio.fs.unlink(tmp_path)
 end
 end
 end
