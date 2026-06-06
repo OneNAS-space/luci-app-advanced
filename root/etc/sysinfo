@@ -38,9 +38,18 @@ get_zone_info() {
     local zone_section LOGICAL_IFS DEVICE_LIST=""
     local info_output=""
 
-    zone_section=$(uci show firewall | awk "/\.name='$zone_name'$/ {print \$1}")
+    zone_section=$(uci show firewall 2>/dev/null | awk "/\.name='$zone_name'$/ {print \$1}")
     [ -n "$zone_section" ] && LOGICAL_IFS=$(uci get "${zone_section%.name=\'$zone_name\'}".network 2>/dev/null | xargs)
-    [ -z "$LOGICAL_IFS" ] && LOGICAL_IFS="$zone_name"
+    if [ -z "$LOGICAL_IFS" ]; then
+        if ubus call network.interface."$zone_name" status >/dev/null 2>&1 || uci get network."$zone_name" >/dev/null 2>&1; then
+            LOGICAL_IFS="$zone_name"
+        else
+            if [ "$zone_name" = "wan" ]; then
+                echo -ne " ${label} Status: Bypass Gateway/Bridge Device (No WAN Interface)"
+            fi
+            return 0
+        fi
+    fi
 
     info_output=" ${label} Interfaces List (Original): $LOGICAL_IFS"
 
