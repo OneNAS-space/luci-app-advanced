@@ -3,7 +3,7 @@
 get_l3_device() {
     local logical_if="$1"
     local l3_dev
-    l3_dev=$(ubus call network.interface."$logical_if" status 2>/dev/null | jsonfilter -e '@.l3_device')
+    l3_dev=$(ubus call network.interface."$logical_if" status 2>/dev/null | jsonfilter -e '@.l3_device' 2>/dev/null)
     [ -z "$l3_dev" ] && l3_dev=$(uci get network."$logical_if".device 2>/dev/null)
     [ -z "$l3_dev" ] && l3_dev="$logical_if"
     echo -n "$l3_dev"
