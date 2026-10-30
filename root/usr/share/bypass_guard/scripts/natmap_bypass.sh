@@ -32,13 +32,12 @@ if [ "$PROTOCOL" = "udp" ]; then
     echo "$OUTER_PORT" > "$LAST_PORT_FILE"
 
     REAL_TARGET_IP=$(uci -q get natmap."$SID".forward_target)
-    WAN_IF=$(uci -q get network.wan.device || uci -q get network.wan.ifname)
 
-    if [ -n "$REAL_TARGET_IP" ] && [ -n "$WAN_IF" ]; then
+    if [ -n "$REAL_TARGET_IP" ]; then
         rm -f "$CACHE_DIR"/*.tcp_fix_rule
         {
-            echo "iifname \"$WAN_IF\" meta nfproto ipv4 tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
-            echo "iifname \"$WAN_IF\" meta nfproto ipv6 tcp dport $OUTER_PORT counter dnat to :$INNER_PORT"
+            echo "iifname __WAN__ meta nfproto ipv4 tcp dport $OUTER_PORT counter dnat ip to $REAL_TARGET_IP:$INNER_PORT"
+            echo "iifname __WAN__ meta nfproto ipv6 tcp dport $OUTER_PORT counter dnat to :$INNER_PORT"
         } > "$RULE_FILE"
         /etc/init.d/bypass_guard manage_natmap 1
     fi
