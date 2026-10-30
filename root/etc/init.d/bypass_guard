@@ -5,7 +5,26 @@ EXTRA_COMMANDS="refresh_nft sync_clients manage_natmap"
 CONF="advanced"
 SECTION="global"
 readonly LAN_IF=$(uci -q get network.lan.device || uci -q get network.lan.ifname || echo "br-lan")
-readonly WAN_IF=$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo "wan")
+
+# Current L3 devices of wan/wan6 as an nft set literal, e.g. { "pppoe-wan" }.
+# Evaluated at call time so PPPoE (device name only exists once connected) works.
+get_wan_set() {
+    local n d list="" out="" x
+    for n in wan wan6; do
+        d=$(ifstatus "$n" 2>/dev/null | jsonfilter -e '@.l3_device' 2>/dev/null)
+        [ -n "$d" ] && case " $list " in *" $d "*) ;; *) list="$list $d" ;; esac
+    done
+    [ -z "$list" ] && list=" $(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wan)"
+    for x in $list; do out="${out:+$out, }\"$x\""; done
+    echo "{ $out }"
+}
+
+del_rules_by_comment() {
+    local chain="$1" comment="$2" h
+    for h in $(nft -a list chain inet bypass_logic "$chain" 2>/dev/null | grep "\"$comment\"" | sed 's/.*# handle //'); do
+        nft delete rule inet bypass_logic "$chain" handle "$h" 2>/dev/null
+    done
+}
 
 remove_bypass_rules() {
     local table="passwall2"
@@ -25,7 +44,7 @@ remove_bypass_rules() {
 }
 
 setup_nft() {
-    local psw_online=$(nft list table inet passwall2 >/dev/null 2>&1 && echo 1 || echo 0)
+    local wan_set=$(get_wan_set)
 
     nft add table inet bypass_logic 2>/dev/null
     if ! nft list chain inet bypass_logic static_privilege >/dev/null 2>&1; then
@@ -53,12 +72,11 @@ setup_nft() {
     if ! nft list table inet bypass_logic | grep -q "CF-Tunnel6-udp-Direct"; then
         nft add rule inet bypass_logic static_privilege ip6 saddr @quic_direct_clients6 udp dport 7844 counter meta mark set 0xff accept comment "CF-Tunnel6-udp-Direct"
     fi
-    if ! nft list table inet bypass_logic | grep -q "qB-tcp-Inbound-Mark-Direct"; then
-        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" tcp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-tcp-Inbound-Mark-Direct"
-    fi
-    if ! nft list table inet bypass_logic | grep -q "qB-udp-Inbound-Mark-Direct"; then
-        nft add rule inet bypass_logic static_privilege iifname "$WAN_IF" udp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-udp-Inbound-Mark-Direct"
-    fi
+    del_rules_by_comment static_privilege "qB-tcp-Inbound-Mark-Direct"
+    del_rules_by_comment static_privilege "qB-udp-Inbound-Mark-Direct"
+    nft add rule inet bypass_logic static_privilege iifname $wan_set tcp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-tcp-Inbound-Mark-Direct"
+    nft add rule inet bypass_logic static_privilege iifname $wan_set udp dport @qb_outer_ports counter meta mark set 0xff accept comment "qB-udp-Inbound-Mark-Direct"
+
     if ! nft list table inet bypass_logic | grep -q "qB-tcp-dport-Direct"; then
         nft add rule inet bypass_logic static_privilege tcp dport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-tcp-dport-Direct"
     fi
@@ -87,12 +105,8 @@ setup_nft() {
 
     nft add rule inet bypass_logic dynamic_logic fib daddr type local meta mark != 0xff counter return comment "Local-Fix"
 
-    local lan_addr=$(uci -q get network.lan.ipaddr)
+    local lan_addr=$(ip -4 -o addr show dev "$LAN_IF" scope global 2>/dev/null | awk '{print $4}' | head -n1)
     if [ -n "$lan_addr" ]; then
-        case "$lan_addr" in
-            */*) ;; 
-            *) lan_addr="${lan_addr}/24" ;;
-        esac
         nft add rule inet bypass_logic dynamic_logic ip daddr "$lan_addr" counter return comment "Loopback-Fix"
     fi
 
@@ -101,13 +115,10 @@ setup_nft() {
         nft add rule inet bypass_logic dynamic_logic ip6 daddr "$lan_addr6" counter return comment "Loopback-v6-Fix"
     fi
 
-    if [ "$psw_online" -eq 1 ]; then
-        nft add rule inet bypass_logic dynamic_logic ip saddr @psw_vpn_clients meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS"
-        nft add rule inet bypass_logic dynamic_logic ip6 saddr @psw_vpn_clients6 meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS-V6"
-        logger -t bypass_guard "🚀 Mode: [PROXY] - Redirecting VPN clients to PassWall2 ✅"
-    else
-        logger -t bypass_guard "🛡️ Mode: [BYPASS] - PassWall2 is unavailable ⚠️"
-    fi
+    # Always hand VPN clients over to PassWall2 (mark 0). If PassWall2 is not running
+    # nothing catches them and they simply go direct, so no boot-order dependency.
+    nft add rule inet bypass_logic dynamic_logic ip saddr @psw_vpn_clients meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS"
+    nft add rule inet bypass_logic dynamic_logic ip6 saddr @psw_vpn_clients6 meta mark != 0xff counter meta mark set 0 accept comment "AGENT-PASS-V6"
 
     nft add rule inet bypass_logic dynamic_logic iifname "$LAN_IF" counter meta mark set 0xff accept comment "Global-Bypass-PassWall2"
 
@@ -119,13 +130,14 @@ sync_clients() {
     local vpn_sections=$(uci show dhcp | grep "@host" | grep "\.tag" | grep -i "VPN" | cut -d. -f2 | sort -u)
     local v6_prefix=$(ip -6 addr show dev "$LAN_IF" | grep 'scope global' | awk '{print $2}' | cut -d: -f1-4 | head -n1)
 
-    if [ -z "$vpn_sections" ]; then
-        logger -t bypass_guard "Sync: No VPN tagged hosts detected."
-        return
-    fi
+    local nft_file="/tmp/bypass_guard_sync.nft"
 
+    # Flush and refill all four sets in ONE nft transaction, so there is no empty
+    # window and a failure leaves the previous contents untouched.
     {
+        echo "flush set inet bypass_logic psw_vpn_clients"
         echo "flush set inet bypass_logic psw_vpn_clients6"
+        echo "flush set inet bypass_logic quic_direct_clients"
         echo "flush set inet bypass_logic quic_direct_clients6"
 
         for section in $vpn_sections; do
@@ -161,9 +173,23 @@ sync_clients() {
                 [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients6 { $v6_fixed }"
             fi
         done
-    } | nft -f - 2>/dev/null
+    } > "$nft_file"
 
-    logger -t bypass_guard "Sync: Updated VPN and Server (QUIC-Direct) clients."
+    local err rc
+    err=$(nft -f "$nft_file" 2>&1)
+    rc=$?
+    rm -f "$nft_file"
+
+    if [ "$rc" -ne 0 ]; then
+        logger -t bypass_guard "Sync: FAILED to update client sets, keeping previous entries: $(echo "$err" | head -n 3 | tr '\n' ' ')"
+        return 1
+    fi
+
+    if [ -z "$vpn_sections" ]; then
+        logger -t bypass_guard "Sync: No VPN tagged hosts detected, client sets cleared."
+    else
+        logger -t bypass_guard "Sync: Updated VPN and Server (QUIC-Direct) clients."
+    fi
 }
 
 manage_natmap() {
@@ -262,7 +288,9 @@ manage_natmap() {
     {
         echo "flush chain inet bypass_logic qb_fix"
         if [ -n "$unique_rules" ]; then
+            local wan_set=$(get_wan_set)
             echo "$unique_rules" | while read -r rule; do
+                rule=$(echo "$rule" | sed "s|__WAN__|$wan_set|")
                 [ -n "$rule" ] && echo "add rule inet bypass_logic qb_fix $rule"
             done
         fi
@@ -330,8 +358,10 @@ stop_service() {
 }
 
 reload_service() {
-    local natmap_en
+    local enabled natmap_en
     config_load "$CONF"
+    config_get_bool enabled "$SECTION" "enable_bypass" 0
+    [ "$enabled" -eq 0 ] && return 0
     config_get_bool natmap_en "$SECTION" "enable_natmap" 0
     logger -t bypass_guard "DEBUG: refresh_nft triggered by [RELOAD_FUNC]"
     refresh_nft
@@ -341,4 +371,6 @@ reload_service() {
 service_triggers() {
     procd_add_reload_trigger "passwall2"
     procd_add_reload_trigger "dhcp"
+    procd_add_interface_trigger "interface.*.up" "wan" /etc/init.d/bypass_guard reload
+    procd_add_interface_trigger "interface.*.up" "wan6" /etc/init.d/bypass_guard reload
 }
