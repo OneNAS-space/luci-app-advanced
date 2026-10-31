@@ -54,7 +54,7 @@ setup_nft() {
         nft "add chain inet bypass_logic static_privilege_output { type filter hook output priority -410; policy accept; }" 2>/dev/null
     fi
 
-    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic quic_direct_clients { type ipv4_addr; }" 2>/dev/null
     nft "add set inet bypass_logic quic_direct_clients6 { type ipv6_addr; }" 2>/dev/null
     nft "add set inet bypass_logic qb_dynamic_ports { type inet_service; flags timeout; }" 2>/dev/null
     nft "add set inet bypass_logic qb_outer_ports { type inet_service; }" 2>/dev/null
@@ -90,7 +90,7 @@ setup_nft() {
         nft add rule inet bypass_logic static_privilege udp sport @qb_dynamic_ports counter meta mark set 0xff accept comment "qB-udp-sport-Direct"
     fi
 
-    nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; flags timeout; }" 2>/dev/null
+    nft "add set inet bypass_logic psw_vpn_clients { type ipv4_addr; }" 2>/dev/null
     nft "add set inet bypass_logic psw_vpn_clients6 { type ipv6_addr; }" 2>/dev/null
 
     if ! nft list chain inet bypass_logic dynamic_logic >/dev/null 2>&1; then
@@ -147,8 +147,8 @@ sync_clients() {
             local ips=$(uci -q get dhcp.$section.ip)
             for ip in $ips; do
                 [ -z "$ip" ] && continue
-                echo "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
-                [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
+                echo "add element inet bypass_logic psw_vpn_clients { $ip }"
+                [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip }"
             done
 
             local macs=$(uci -q get "dhcp.$section.mac")
@@ -159,8 +159,8 @@ sync_clients() {
                         echo "add element inet bypass_logic psw_vpn_clients6 { $ip }"
                         [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients6 { $ip }"
                     else
-                        echo "add element inet bypass_logic psw_vpn_clients { $ip timeout 8d }"
-                        [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip timeout 8d }"
+                        echo "add element inet bypass_logic psw_vpn_clients { $ip }"
+                        [ -n "$is_server" ] && echo "add element inet bypass_logic quic_direct_clients { $ip }"
                     fi
                 done
             done
@@ -214,7 +214,7 @@ manage_natmap() {
     else
         nft flush chain inet bypass_logic static_privilege_output 2>/dev/null
         nft flush set inet bypass_logic stun_direct 2>/dev/null
-        rm -f "/etc/config/stun_servers.etag"
+        rm -f /tmp/stun_servers.etag /tmp/stun_servers.txt
     fi
 
     if [ -d "$cache_dir" ]; then
@@ -309,7 +309,8 @@ manage_natmap() {
     if [ -f "$qb_outer_port_file" ]; then
         local op=$(cat "$qb_outer_port_file")
         if [ -n "$op" ]; then
-            nft "add element inet bypass_logic qb_outer_ports { $op }" 2>/dev/null
+            # Replace (not append): ports of earlier STUN mappings must not stay marked direct.
+            printf 'flush set inet bypass_logic qb_outer_ports\nadd element inet bypass_logic qb_outer_ports { %s }\n' "$op" | nft -f - 2>/dev/null
             logger -t bypass_guard "Sync: Restored cached qB Outer Port $op"
         fi
     else
